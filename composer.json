@@ -1,0 +1,21 @@
+{
+    "name": "zls/wechat",
+    "description": "微信开发",
+    "type": "library",
+    "license": "MIT",
+  	"minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "影浅",
+            "email": "seekwe@gmail.com"
+        }
+    ],
+    "autoload":
+    {
+        "psr-4":
+        {
+            "Zls\\Wechat\\": "src/"
+        }
+    },
+    "require": {}
+}
