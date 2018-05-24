@@ -14,7 +14,7 @@
     {
         "psr-4":
         {
-            "Zls\\Wechat\\": "src/"
+            "Zls\\WeChat\\": "src/"
         }
     },
     "require": {}
