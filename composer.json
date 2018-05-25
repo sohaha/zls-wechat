@@ -17,5 +17,7 @@
             "Zls\\WeChat\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+        "zls/action": "^1.0.0"
+    }
 }
