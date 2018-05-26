@@ -328,9 +328,7 @@ class Main
             $result = @json_decode($result, true);
             $errcode = z::arrayGet($result, 'errcode', '');
             if (!$result || !empty($errcode)) {
-                $this->setError($errcode, $this->getErrText($result));
-
-                return false;
+                return $this->setError($errcode, $this->getErrText($result));
             }
         }
 
@@ -338,7 +336,7 @@ class Main
     }
 
     /**
-     * @return \Zls\Action\Http
+     * @return object \Zls\Action\Http
      */
     public function getHttp()
     {
@@ -378,25 +376,285 @@ class Main
 
     public function setError($errorCode, $errorMsg, $force = false)
     {
+        $result = false;
+        static $reAccessToken = false;
         switch ($errorCode) {
-            case 42001:
-                //令牌过期
+            case 42001://令牌过期
+                break;
+            case 40001://accessToken无效
+                $this->errorLog('缓存没过期，但是accessToken失效了');
+                if (!$reAccessToken) {
+                    $this->getAccessToken(false);
+                    $reAccessToken = true;
+                    $backtrace = debug_backtrace();
+                    foreach ($backtrace as $k) {
+                        if (z::arrayGet($k, 'class') === __CLASS__ && z::arrayGet($k, 'function') === 'request') {
+                            $args = $k['args'];
+                            $url = z::arrayGet($args, 0);
+                            $urls = parse_url($url);
+                            if ($query = z::arrayGet($urls, 'query', '')) {
+                                parse_str($query, $query);
+                                $argsKey = ['appid' => 'getAppid', 'secret' => 'getAppsecret', 'access_token' => 'getAccessToken'];
+                                foreach (array_keys($argsKey) as $v) {
+                                    if (isset($query[$v])) {
+                                        $getMethod = $argsKey[$v];
+                                        $query[$v] = $this->$getMethod();
+                                    }
+                                }
+                                $query = '?' . http_build_query($query);
+                            }
+                            $port = z::arrayGet($urls, 'port');
+                            $host = z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+                            $fragment = z::arrayGet($urls, 'fragment');
+                            $url = z::arrayGet($urls, 'scheme') . '://' . $host . z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+                            $data = z::arrayGet($args, 1);
+                            $type = z::arrayGet($args, 2, 'get');
+                            $dataType = z::arrayGet($args, 3, 'json');
+                            $responseType = z::arrayGet($args, 4, 'json');
+                            $atUpload = z::arrayGet($args, 5, false);
+                            $result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
+                            break;
+                        }
+                    }
+                }
                 break;
         }
         if ($this->errorCode <= 0 || $force === true) {
             $this->errorCode = $errorCode;
             $this->errorMsg = $errorMsg;
         }
+
+        return $result;
     }
 
-    private function getErrText($err)
+    /**
+     * @param $_
+     */
+    public function errorLog($_)
     {
-        $code = z::arrayGet($err, 'errcode', -1);
-        if (isset(self::$errCode[$code])) {
-            return self::$errCode[$code];
+        $this->output();
+    }
+
+    /**
+     * 获取AccessToken
+     * @param bool $cache
+     * @return bool|string
+     */
+    public function getAccessToken($cache = true)
+    {
+        if (!$this->getComponentAppid()) {
+            if (!$this->accessToken) {
+                $agentid = $this->getAgentid() ?: '';
+                $cacheKey = $this->getUniqueKey() . $agentid . '_access_token';
+                if ($cache != true || !$access_token = z::cache()->get($cacheKey)) {
+                    $res = $this->instance()->getAccessToken();
+                    if (!$res) {
+                        return false;
+                    }
+                    $access_token = $res['access_token'];
+                    $expire = $res['expires_in'] ? intval($res['expires_in']) - 300 : 3600;
+                    z::cache()->set($cacheKey, $access_token, $expire);
+                    z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
+                    $this->accessTokenOutTime($expire);
+                }
+                $this->setAccessToken($access_token);
+            }
         } else {
-            return $code . ':' . $err['errmsg'];
+            //存在开放平台APPID则强行把AccessToken返回ComponentAuthorizerAccessToken
+            return $this->getComponentAuthorizerAccessToken();
         }
+
+        return $this->accessToken;
+    }
+
+    /**
+     * 设置AccessToken
+     * @param string $access_token
+     * @return Main
+     */
+    public function setAccessToken($access_token)
+    {
+        $this->accessToken = $access_token;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAgentid()
+    {
+        return $this->agentid;
+    }
+
+    /**
+     * @param mixed $agentid
+     */
+    public function setAgentid($agentid)
+    {
+        $this->agentid = $agentid;
+    }
+
+    /**
+     * @param string $key
+     * @return mixed
+     */
+    public function getUniqueKey($key = '')
+    {
+        return $this->uniqueKey . $key;
+    }
+
+    /**
+     * 设置唯一Key
+     * @param mixed $uniqueKey
+     * @return Main
+     */
+    public function setUniqueKey($uniqueKey = null)
+    {
+        if (!$uniqueKey) {
+            $uniqueKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() . md5($this->getComponentAppsecret()) : $this->getAppid() . md5($this->getAppsecret()));
+        }
+        $this->uniqueKey = $uniqueKey;
+
+        return $this;
+    }
+
+    /**
+     * @return Basi|Qy
+     */
+    private function instance()
+    {
+        if ($this->getAgentid()) {
+            $instance = $this->getQy();
+        } else {
+            $instance = $this->getBasi();
+        }
+
+        return $instance;
+    }
+
+    /**
+     * @param null $expiresIn
+     * @return int|null
+     */
+    public function accessTokenOutTime($expiresIn = null)
+    {
+        $cacheKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() : $this->getAppid()) . '_AccessTokenOutTime';
+        if (is_null($expiresIn)) {
+            $expiresIn = z::cache()->get($cacheKey) ?: 0;
+        } else {
+            $expiresIn = time() + $expiresIn;
+            z::cache()->set($cacheKey, $expiresIn);
+        }
+
+        return $expiresIn;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAppid()
+    {
+        return $this->appid;
+    }
+
+    /**
+     * 设置Appid
+     * @param mixed $appid
+     * @return Main
+     */
+    public function setAppid($appid)
+    {
+        $this->appid = $appid;
+        if (!$this->getComponentAppid()) {
+            $this->getCrypt()->setAppId($appid);
+        }
+        $this->componentAuthorizerAccessToken = null;
+        $this->accessToken = null;
+
+        return $this;
+    }
+
+    /**
+     * 获取开放平台AuthorizerAccessToken
+     * @param string $appid
+     * @return mixed
+     */
+    public function getComponentAuthorizerAccessToken($appid = '')
+    {
+        if (!$appid) {
+            $appid = $this->getAppid();
+        }
+        if (!$this->componentAuthorizerAccessToken && (!$this->componentAuthorizerAccessToken = z::cache()->get($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid)))) {
+            $this->refreshComponentAuthorizerAccessToken();
+        }
+
+        return $this->componentAuthorizerAccessToken;
+    }
+
+    /**
+     * 设置开放平台授权公众号AccessToken
+     * @param mixed  $componentAuthorizerAccessToken
+     * @param string $appid
+     * @param int    $expiresIn
+     */
+    public function setComponentAuthorizerAccessToken($componentAuthorizerAccessToken, $appid = '', $expiresIn = 3600)
+    {
+        if (!$appid) {
+            $appid = $this->getAppid();
+        } else {
+            $this->setAppid($appid);
+        }
+        if ($componentAuthorizerAccessToken) {
+            z::cache()->set($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
+                $componentAuthorizerAccessToken, $expiresIn);
+        }
+        $this->componentAuthorizerAccessToken = $componentAuthorizerAccessToken;
+    }
+
+    /**
+     * 刷新AuthorizerAccessToken
+     * @param string $appid                  appid
+     * @param string $authorizerRefreshToken 刷新令牌
+     * @return mixed
+     */
+    public function refreshComponentAuthorizerAccessToken($appid = '', $authorizerRefreshToken = null)
+    {
+        if (!$appid) {
+            $appid = $this->getAppid();
+        }
+        $data = [
+            'component_appid'          => $this->getComponentAppid(),
+            'authorizer_appid'         => $appid,
+            'authorizer_refresh_token' => $authorizerRefreshToken ?: $this->getComponentRefreshToken($appid),
+        ];
+
+        return z::tap($this->post(self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
+            $data), function ($resule) use ($appid, $data) {
+            if ($resule) {
+                $this->getCallbackRefreshComponent($appid, $resule);
+                $expiresIn = $resule['expires_in'] - 300;
+                $this->accessTokenOutTime($expiresIn);
+                $this->setComponentAuthorizerAccessToken($resule['authorizer_access_token'], $appid, $expiresIn);
+                $this->setComponentRefreshToken($resule['authorizer_refresh_token'], $appid, 602000);
+            } else {
+                $this->errorLog('刷新AuthorizerAccessToken失败', $data, $this->getComponentAccessToken(), $this->getError());
+            }
+        });
+    }
+
+    /**
+     * 获取刷新令牌
+     * @param string $appid
+     * @return mixed
+     */
+    public function getComponentRefreshToken($appid = '')
+    {
+        if (!$appid) {
+            $appid = $this->getAppid();
+        }
+
+        return z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
     }
 
     /**
@@ -445,30 +703,6 @@ class Main
     }
 
     /**
-     * @param string $key
-     * @return mixed
-     */
-    public function getUniqueKey($key = '')
-    {
-        return $this->uniqueKey . $key;
-    }
-
-    /**
-     * 设置唯一Key
-     * @param mixed $uniqueKey
-     * @return Main
-     */
-    public function setUniqueKey($uniqueKey = null)
-    {
-        if (!$uniqueKey) {
-            $uniqueKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() . md5($this->getComponentAppsecret()) : $this->getAppid() . md5($this->getAppsecret()));
-        }
-        $this->uniqueKey = $uniqueKey;
-
-        return $this;
-    }
-
-    /**
      * @return mixed
      */
     public function getComponentAppsecret()
@@ -493,14 +727,6 @@ class Main
         return z::cache()->get($this->getUniqueKey('_ComponentTicket'));
     }
 
-    /**
-     * @param $_
-     */
-    public function errorLog($_)
-    {
-        $this->output();
-    }
-
     public function getError($clean = \false)
     {
         $error = ['code' => $this->errorCode, 'msg' => $this->errorMsg];
@@ -509,6 +735,14 @@ class Main
         }
 
         return $error;
+    }
+
+    public function getCallbackRefreshComponent($appid, $resule)
+    {
+        $closure = $this->refreshComponentCallback;
+        if ($closure instanceof \Closure) {
+            $closure($appid, $resule);
+        }
     }
 
     /**
@@ -528,29 +762,14 @@ class Main
         }
     }
 
-    /**
-     * @return mixed
-     */
-    public function getAppid()
+    private function getErrText($err)
     {
-        return $this->appid;
-    }
-
-    /**
-     * 设置Appid
-     * @param mixed $appid
-     * @return Main
-     */
-    public function setAppid($appid)
-    {
-        $this->appid = $appid;
-        if (!$this->getComponentAppid()) {
-            $this->getCrypt()->setAppId($appid);
+        $code = z::arrayGet($err, 'errcode', -1);
+        if (isset(self::$errCode[$code])) {
+            return self::$errCode[$code];
+        } else {
+            return $code . ':' . $err['errmsg'];
         }
-        $this->componentAuthorizerAccessToken = null;
-        $this->accessToken = null;
-
-        return $this;
     }
 
     /**
@@ -763,36 +982,6 @@ class Main
     }
 
     /**
-     * @return Basi|Qy
-     */
-    private function instance()
-    {
-        if ($this->getAgentid()) {
-            $instance = $this->getQy();
-        } else {
-            $instance = $this->getBasi();
-        }
-
-        return $instance;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAgentid()
-    {
-        return $this->agentid;
-    }
-
-    /**
-     * @param mixed $agentid
-     */
-    public function setAgentid($agentid)
-    {
-        $this->agentid = $agentid;
-    }
-
-    /**
      * 生成随机字符串
      * @param int $length
      * @return string
@@ -838,157 +1027,6 @@ class Main
     public function get($url, $data = null)
     {
         return $this->request($url, $data, 'get');
-    }
-
-    /**
-     * 获取AccessToken
-     * @param bool $cache
-     * @return bool|string
-     */
-    public function getAccessToken($cache = true)
-    {
-        if (!$this->getComponentAppid()) {
-            if (!$this->accessToken) {
-                $agentid = $this->getAgentid() ?: '';
-                $cacheKey = $this->getUniqueKey() . $agentid . '_access_token';
-                if ($cache != true || !$access_token = z::cache()->get($cacheKey)) {
-                    $res = $this->instance()->getAccessToken();
-                    if (!$res) {
-                        return false;
-                    }
-                    $access_token = $res['access_token'];
-                    $expire = $res['expires_in'] ? intval($res['expires_in']) - 300 : 3600;
-                    z::cache()->set($cacheKey, $access_token, $expire);
-                    z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
-                    $this->accessTokenOutTime($expire);
-                }
-                $this->setAccessToken($access_token);
-            }
-        } else {
-            //存在开放平台APPID则强行把AccessToken返回ComponentAuthorizerAccessToken
-            return $this->getComponentAuthorizerAccessToken();
-        }
-
-        return $this->accessToken;
-    }
-
-    /**
-     * 设置AccessToken
-     * @param string $access_token
-     * @return Main
-     */
-    public function setAccessToken($access_token)
-    {
-        $this->accessToken = $access_token;
-
-        return $this;
-    }
-
-    /**
-     * @param null $expiresIn
-     * @return int|null
-     */
-    public function accessTokenOutTime($expiresIn = null)
-    {
-        $cacheKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() : $this->getAppid()) . '_AccessTokenOutTime';
-        if (is_null($expiresIn)) {
-            $expiresIn = z::cache()->get($cacheKey) ?: 0;
-        } else {
-            $expiresIn = time() + $expiresIn;
-            z::cache()->set($cacheKey, $expiresIn);
-        }
-
-        return $expiresIn;
-    }
-
-    /**
-     * 获取开放平台AuthorizerAccessToken
-     * @param string $appid
-     * @return mixed
-     */
-    public function getComponentAuthorizerAccessToken($appid = '')
-    {
-        if (!$appid) {
-            $appid = $this->getAppid();
-        }
-        if (!$this->componentAuthorizerAccessToken && (!$this->componentAuthorizerAccessToken = z::cache()->get($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid)))) {
-            $this->refreshComponentAuthorizerAccessToken();
-        }
-
-        return $this->componentAuthorizerAccessToken;
-    }
-
-    /**
-     * 设置开放平台授权公众号AccessToken
-     * @param mixed  $componentAuthorizerAccessToken
-     * @param string $appid
-     * @param int    $expiresIn
-     */
-    public function setComponentAuthorizerAccessToken($componentAuthorizerAccessToken, $appid = '', $expiresIn = 3600)
-    {
-        if (!$appid) {
-            $appid = $this->getAppid();
-        } else {
-            $this->setAppid($appid);
-        }
-        if ($componentAuthorizerAccessToken) {
-            z::cache()->set($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
-                $componentAuthorizerAccessToken, $expiresIn);
-        }
-        $this->componentAuthorizerAccessToken = $componentAuthorizerAccessToken;
-    }
-
-    /**
-     * 刷新AuthorizerAccessToken
-     * @param string $appid                  appid
-     * @param string $authorizerRefreshToken 刷新令牌
-     * @return mixed
-     */
-    public function refreshComponentAuthorizerAccessToken($appid = '', $authorizerRefreshToken = null)
-    {
-        if (!$appid) {
-            $appid = $this->getAppid();
-        }
-        $data = [
-            'component_appid'          => $this->getComponentAppid(),
-            'authorizer_appid'         => $appid,
-            'authorizer_refresh_token' => $authorizerRefreshToken ?: $this->getComponentRefreshToken($appid),
-        ];
-
-        return z::tap($this->post(self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
-            $data), function ($resule) use ($appid, $data) {
-            if ($resule) {
-                $this->getCallbackRefreshComponent($appid, $resule);
-                $expiresIn = $resule['expires_in'] - 300;
-                $this->accessTokenOutTime($expiresIn);
-                $this->setComponentAuthorizerAccessToken($resule['authorizer_access_token'], $appid, $expiresIn);
-                $this->setComponentRefreshToken($resule['authorizer_refresh_token'], $appid, 602000);
-            } else {
-                $this->errorLog('刷新AuthorizerAccessToken失败', $data, $this->getComponentAccessToken(), $this->getError());
-            }
-        });
-    }
-
-    /**
-     * 获取刷新令牌
-     * @param string $appid
-     * @return mixed
-     */
-    public function getComponentRefreshToken($appid = '')
-    {
-        if (!$appid) {
-            $appid = $this->getAppid();
-        }
-
-        return z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
-    }
-
-    public function getCallbackRefreshComponent($appid, $resule)
-    {
-        $closure = $this->refreshComponentCallback;
-        if ($closure instanceof \Closure) {
-            $closure($appid, $resule);
-        }
     }
 
     /**
