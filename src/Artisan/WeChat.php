@@ -1,22 +1,26 @@
 <?php
 
 namespace Zls\Wechat\Artisan;
+
 use Z;
 
-class WeChat extends \Zls\Artisan\Command {
+class WeChat extends \Zls\Artisan\Command
+{
 
-    public function execute(\Zls_CliArgs $args) {
+    public function execute(\Zls_CliArgs $args)
+    {
         $this->init($args);
     }
 
-    public function init(\Zls_CliArgs $args) {
+    public function init(\Zls_CliArgs $args)
+    {
         $force = $args->get('force', $args->get('f'));
         $this->copy(z::realPath(__DIR__ . '/../Config/wechat.php', false, false), $force);
     }
 
-    private function copy($origin, $force) {
+    private function copy($origin, $force)
+    {
         $path = z::realPath(ZLS_APP_PATH . 'config/default/wechat.php', false, false);
-
         if (!file_exists($path) || $force) {
             echo parent::success("copy config: {$origin} -> {$path}") . PHP_EOL;
             echo parent::getColoredString('Status: ' . @copy($origin, $path)) . PHP_EOL;
@@ -26,15 +30,18 @@ class WeChat extends \Zls\Artisan\Command {
         }
     }
 
-    public function title() {
+    public function title()
+    {
         return 'WeChat Packages';
     }
 
-    public function options() {
+    public function options()
+    {
         return ['-force Overwrite old config file'];
     }
 
-    public function example() {
+    public function example()
+    {
 
     }
 }

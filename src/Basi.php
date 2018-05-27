@@ -26,6 +26,7 @@ class Basi implements WxInterface
     public function getAccessToken()
     {
         $wx = $this->wx;
+
         return $wx->post($wx::APIURL . '/cgi-bin/token?grant_type=client_credential&appid=' . $wx->getAppid() . '&secret=' . $this->wx->getAppsecret());
     }
 
@@ -35,6 +36,7 @@ class Basi implements WxInterface
     public function getJsapiTicket()
     {
         $wx = $this->wx;
+
         return $wx->get($wx::APIURL . '/cgi-bin/ticket/getticket?&type=jsapi&access_token=' . $wx->getAccessToken());
     }
 

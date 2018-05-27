@@ -200,24 +200,27 @@ class Main
     /**
      * @param array $data [appid,appsecret,encoding_aes_key,component_appid,component_appsecret]
      */
-    public function init(array $data)
+    public function init(array $data = [])
     {
-        z::log(date('Y-M-d H:i:s') . '实例化微信库类对象', 'wxInit');
-        $this->appid = z::arrayGet($data, 'appid', z::arrayGet($data, 'corpid'));
-        $this->appsecret = z::arrayGet($data, 'appsecret');
-        $this->token = z::arrayGet($data, 'token');
-        $this->encodingAesKey = z::arrayGet($data, 'encodingAesKey');
-        $this->componentAppid = z::arrayGet($data, 'componentAppid');
-        $this->componentAppsecret = z::arrayGet($data, 'componentAppsecret');
-        $this->debug = z::arrayGet($data, 'debug');
-        $this->agentid = z::arrayGet($data, 'agentid');
+        if (!$data) {
+            $data = Z::config('wechat');
+        }
+        $this->appid = Z::arrayGet($data, 'appid', Z::arrayGet($data, 'corpid'));
+        $this->appsecret = Z::arrayGet($data, 'appsecret');
+        $this->token = Z::arrayGet($data, 'token');
+        $this->encodingAesKey = Z::arrayGet($data, 'encodingAesKey');
+        $this->componentAppid = Z::arrayGet($data, 'componentAppid');
+        $this->componentAppsecret = Z::arrayGet($data, 'componentAppsecret');
+        $this->debug = Z::arrayGet($data, 'debug');
+        $this->agentid = Z::arrayGet($data, 'agentid');
+        $this->reAccessToken = Z::arrayGet($data, 'reAccessToken', 1);
         $this->setUniqueKey();
     }
 
     public function __call($name, $value)
     {
         $className = 'Zls_WeChat_' . str_replace('get', '', $name);
-        $class = z::factory($className, true, null, [$this]);
+        $class = Z::factory($className, true, null, [$this]);
 
         return $class;
     }
@@ -242,10 +245,10 @@ class Main
     public function runComponentAuth($redirect_uri = '')
     {
         if (!$redirect_uri) {
-            $redirect_uri = z::host(true, true, true);
+            $redirect_uri = Z::host(true, true, true);
         }
-        if ($auth_code = z::get('auth_code')) {
-            return z::tap($this->getComponentApiQueryAuth($auth_code), function ($authInfo) use ($redirect_uri) {
+        if ($auth_code = Z::get('auth_code')) {
+            return Z::tap($this->getComponentApiQueryAuth($auth_code), function ($authInfo) use ($redirect_uri) {
                 if ($this->errorCode == '61010') {
                     unset($_GET['auth_code']);
                     $this->runComponentAuth($redirect_uri);
@@ -261,7 +264,7 @@ class Main
             });
         } else {
             $url = 'https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=' . $this->getComponentAppid() . '&pre_auth_code=' . $this->getComponentPreAuthCode() . '&redirect_uri=' . $redirect_uri;
-            z::redirect($url);
+            Z::redirect($url);
 
             return false;
         }
@@ -326,7 +329,7 @@ class Main
         $this->log('接口请求', $url, $data, $result);
         if ($responseType === 'json') {
             $result = @json_decode($result, true);
-            $errcode = z::arrayGet($result, 'errcode', '');
+            $errcode = Z::arrayGet($result, 'errcode', '');
             if (!$result || !empty($errcode)) {
                 return $this->setError($errcode, $this->getErrText($result));
             }
@@ -340,7 +343,7 @@ class Main
      */
     public function getHttp()
     {
-        return z::extension('Action_Http');
+        return Z::extension('Action_Http');
     }
 
     /**
@@ -357,11 +360,11 @@ class Main
 
     protected function output()
     {
-        $trace = z::arrayGet(debug_backtrace(), 1);
+        $trace = Z::arrayGet(debug_backtrace(), 1);
         $arg = $trace['args'];
         $data = [
             'time' => date('Y-m-d H:i:s'),
-            'file' => z::safePath($trace['file']),
+            'file' => Z::safePath($trace['file']),
             'line' => $trace['line'],
         ];
         if (is_array($arg)) {
@@ -371,51 +374,23 @@ class Main
         } else {
             $data['log'] = $arg;
         }
-        z::log($data, 'wx');
+        Z::log($data, 'wx');
     }
 
     public function setError($errorCode, $errorMsg, $force = false)
     {
         $result = false;
-        static $reAccessToken = false;
         switch ($errorCode) {
             case 42001://令牌过期
                 break;
             case 40001://accessToken无效
-                $this->errorLog('缓存没过期，但是accessToken失效了');
-                if (!$reAccessToken) {
+                $this->errorLog('缓存没过期，但是accessToken失效了:' . $this->reAccessToken);
+                if (!!$this->reAccessToken) {
+                    $this->reAccessToken = ((int)$this->reAccessToken) - 1;
+                    $this->setAppsecret('cc31573bfa7af4cdc2ba327357af9234');
+                    $this->accessToken = '';
                     $this->getAccessToken(false);
-                    $reAccessToken = true;
-                    $backtrace = debug_backtrace();
-                    foreach ($backtrace as $k) {
-                        if (z::arrayGet($k, 'class') === __CLASS__ && z::arrayGet($k, 'function') === 'request') {
-                            $args = $k['args'];
-                            $url = z::arrayGet($args, 0);
-                            $urls = parse_url($url);
-                            if ($query = z::arrayGet($urls, 'query', '')) {
-                                parse_str($query, $query);
-                                $argsKey = ['appid' => 'getAppid', 'secret' => 'getAppsecret', 'access_token' => 'getAccessToken'];
-                                foreach (array_keys($argsKey) as $v) {
-                                    if (isset($query[$v])) {
-                                        $getMethod = $argsKey[$v];
-                                        $query[$v] = $this->$getMethod();
-                                    }
-                                }
-                                $query = '?' . http_build_query($query);
-                            }
-                            $port = z::arrayGet($urls, 'port');
-                            $host = z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
-                            $fragment = z::arrayGet($urls, 'fragment');
-                            $url = z::arrayGet($urls, 'scheme') . '://' . $host . z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
-                            $data = z::arrayGet($args, 1);
-                            $type = z::arrayGet($args, 2, 'get');
-                            $dataType = z::arrayGet($args, 3, 'json');
-                            $responseType = z::arrayGet($args, 4, 'json');
-                            $atUpload = z::arrayGet($args, 5, false);
-                            $result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
-                            break;
-                        }
-                    }
+                    $result = $this->reRequest();
                 }
                 break;
         }
@@ -446,15 +421,16 @@ class Main
             if (!$this->accessToken) {
                 $agentid = $this->getAgentid() ?: '';
                 $cacheKey = $this->getUniqueKey() . $agentid . '_access_token';
-                if ($cache != true || !$access_token = z::cache()->get($cacheKey)) {
+                if ($cache != true || !$access_token = Z::cache()->get($cacheKey)) {
                     $res = $this->instance()->getAccessToken();
                     if (!$res) {
                         return false;
                     }
                     $access_token = $res['access_token'];
-                    $expire = $res['expires_in'] ? intval($res['expires_in']) - 300 : 3600;
-                    z::cache()->set($cacheKey, $access_token, $expire);
-                    z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
+                    $expire = Z::arrayGet($res, 'expires_in', 1800);
+                    $expire = intval($expire) > 1800 ? $expire - 1800 : 3600;
+                    Z::cache()->set($cacheKey, $access_token, $expire);
+                    Z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
                     $this->accessTokenOutTime($expire);
                 }
                 $this->setAccessToken($access_token);
@@ -541,10 +517,10 @@ class Main
     {
         $cacheKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() : $this->getAppid()) . '_AccessTokenOutTime';
         if (is_null($expiresIn)) {
-            $expiresIn = z::cache()->get($cacheKey) ?: 0;
+            $expiresIn = Z::cache()->get($cacheKey) ?: 0;
         } else {
             $expiresIn = time() + $expiresIn;
-            z::cache()->set($cacheKey, $expiresIn);
+            Z::cache()->set($cacheKey, $expiresIn);
         }
 
         return $expiresIn;
@@ -585,7 +561,7 @@ class Main
         if (!$appid) {
             $appid = $this->getAppid();
         }
-        if (!$this->componentAuthorizerAccessToken && (!$this->componentAuthorizerAccessToken = z::cache()->get($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid)))) {
+        if (!$this->componentAuthorizerAccessToken && (!$this->componentAuthorizerAccessToken = Z::cache()->get($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid)))) {
             $this->refreshComponentAuthorizerAccessToken();
         }
 
@@ -606,7 +582,7 @@ class Main
             $this->setAppid($appid);
         }
         if ($componentAuthorizerAccessToken) {
-            z::cache()->set($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
+            Z::cache()->set($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
                 $componentAuthorizerAccessToken, $expiresIn);
         }
         $this->componentAuthorizerAccessToken = $componentAuthorizerAccessToken;
@@ -629,7 +605,7 @@ class Main
             'authorizer_refresh_token' => $authorizerRefreshToken ?: $this->getComponentRefreshToken($appid),
         ];
 
-        return z::tap($this->post(self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
+        return Z::tap($this->post(self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
             $data), function ($resule) use ($appid, $data) {
             if ($resule) {
                 $this->getCallbackRefreshComponent($appid, $resule);
@@ -654,7 +630,7 @@ class Main
             $appid = $this->getAppid();
         }
 
-        return z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
+        return Z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
     }
 
     /**
@@ -665,7 +641,7 @@ class Main
     public function getComponentAccessToken($cache = true)
     {
         $cacheKey = $this->getUniqueKey('_ComponentAccessToken');
-        $this->componentAccessToken = $this->componentAccessToken ?: z::cache()->get($cacheKey);
+        $this->componentAccessToken = $this->componentAccessToken ?: Z::cache()->get($cacheKey);
         if ($cache === false || !$this->componentAccessToken) {
             $data = [
                 'component_appid'         => $this->getComponentAppid(),
@@ -678,14 +654,14 @@ class Main
                 $this->log('获取开放平台AccessToken成功', $result);
                 $this->componentAccessToken = $result['component_access_token'];
                 $expiresIn = $result['expires_in'] - 1800;
-                z::cache()->set($cacheKey, $this->componentAccessToken, $expiresIn);
-                z::cache()->set($cacheKey . '_expiresIn', time() + $expiresIn, $expiresIn);
+                Z::cache()->set($cacheKey, $this->componentAccessToken, $expiresIn);
+                Z::cache()->set($cacheKey . '_expiresIn', time() + $expiresIn, $expiresIn);
             } else {
                 $this->errorLog('获取开放平台AccessToken失败', $this->getError(), $data);
             }
         }
         $this->log('获取开放平台AccessToken:', $this->componentAccessToken,
-            '过期时间' . date('Y-m-d H:i:s', z::cache()->get($cacheKey . '_expiresIn')));
+            '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn')));
 
         return $this->componentAccessToken;
     }
@@ -697,7 +673,7 @@ class Main
     public function setComponentAccessToken($componentAccessToken)
     {
         if ($componentAccessToken) {
-            z::cache()->set($this->getUniqueKey('_ComponentAccessToken'), $componentAccessToken, 3600);
+            Z::cache()->set($this->getUniqueKey('_ComponentAccessToken'), $componentAccessToken, 3600);
         }
         $this->componentAccessToken = $componentAccessToken;
     }
@@ -724,7 +700,7 @@ class Main
      */
     public function getComponentTicket()
     {
-        return z::cache()->get($this->getUniqueKey('_ComponentTicket'));
+        return Z::cache()->get($this->getUniqueKey('_ComponentTicket'));
     }
 
     public function getError($clean = \false)
@@ -757,14 +733,51 @@ class Main
             $appid = $this->getAppid();
         }
         if ($componentRefreshToken) {
-            z::cache()->set($this->getUniqueKey('_ComponentRefreshToken_' . $appid), $componentRefreshToken,
+            Z::cache()->set($this->getUniqueKey('_ComponentRefreshToken_' . $appid), $componentRefreshToken,
                 $expiresIn);
         }
     }
 
+    public function reRequest()
+    {
+        $result = false;
+        $backtrace = debug_backtrace();
+        foreach ($backtrace as $k) {
+            if (Z::arrayGet($k, 'class') === __CLASS__ && Z::arrayGet($k, 'function') === 'request') {
+                $args = $k['args'];
+                $url = Z::arrayGet($args, 0);
+                $urls = parse_url($url);
+                if ($query = Z::arrayGet($urls, 'query', '')) {
+                    parse_str($query, $query);
+                    $argsKey = ['appid' => 'getAppid', 'secret' => 'getAppsecret', 'access_token' => 'getAccessToken'];
+                    foreach (array_keys($argsKey) as $v) {
+                        if (isset($query[$v])) {
+                            $getMethod = $argsKey[$v];
+                            $query[$v] = $this->$getMethod();
+                        }
+                    }
+                    $query = '?' . http_build_query($query);
+                }
+                $port = Z::arrayGet($urls, 'port');
+                $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+                $fragment = Z::arrayGet($urls, 'fragment');
+                $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+                $data = Z::arrayGet($args, 1);
+                $type = Z::arrayGet($args, 2, 'get');
+                $dataType = Z::arrayGet($args, 3, 'json');
+                $responseType = Z::arrayGet($args, 4, 'json');
+                $atUpload = Z::arrayGet($args, 5, false);
+                $result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
+                break;
+            }
+        }
+
+        return $result;
+    }
+
     private function getErrText($err)
     {
-        $code = z::arrayGet($err, 'errcode', -1);
+        $code = Z::arrayGet($err, 'errcode', -1);
         if (isset(self::$errCode[$code])) {
             return self::$errCode[$code];
         } else {
@@ -797,8 +810,8 @@ class Main
     public function getCrypt()
     {
         /**  @var Crypt $class */
-        $class = z::tap(
-            z::extension('WeChat_Crypt'), function ($class) {
+        $class = Z::tap(
+            Z::extension('WeChat_Crypt'), function ($class) {
             /**  @var Crypt $class */
             if ($this->getComponentAppid()) {
                 $class->msgCrypt($this->getComponentAppid(), $this->getEncodingAesKey(), $this->getToken());
@@ -860,9 +873,9 @@ class Main
     public function upload($url, $data = null)
     {
         if (!empty($_FILES)) {
-            $key = z::arrayGet(array_keys($_FILES), 0);
-            if ($file = z::arrayGet($_FILES, $key)) {
-                $tempPath = z::tempPath();
+            $key = Z::arrayGet(array_keys($_FILES), 0);
+            if ($file = Z::arrayGet($_FILES, $key)) {
+                $tempPath = Z::tempPath();
                 $filename = $tempPath . '/' . $file['name'];
                 move_uploaded_file($file['tmp_name'], $filename);
                 $data[$key] = '@' . $filename;
@@ -881,9 +894,9 @@ class Main
     public function cache($key, $data, $time = 30)
     {
         $key = $this->getUniqueKey() . $key;
-        if (!$cacheData = z::cache()->get($key)) {
+        if (!$cacheData = Z::cache()->get($key)) {
             $cacheData = $data();
-            z::cache()->set($key, $cacheData, $time);
+            Z::cache()->set($key, $cacheData, $time);
         }
 
         return $cacheData;
@@ -901,7 +914,7 @@ class Main
         if (!$this->getJsapiTicket()) {
             return false;
         }
-        (!$url) && $url = z::host(true, true, true);
+        (!$url) && $url = Z::host(true, true, true);
         (!$timestamp) && $timestamp = time();
         (!$noncestr) && $noncestr = $this->generateNonceStr();
         $ret = strpos($url, '#');
@@ -919,7 +932,7 @@ class Main
             "jsapi_ticket" => $this->getJsapiTicket(),
         ];
         $cacheKey = $this->getUniqueKey() . '_js_sign_' . md5($url . $this->getJsapiTicket());
-        if (!$signPackage = z::cache()->get($cacheKey)) {
+        if (!$signPackage = Z::cache()->get($cacheKey)) {
             if (!function_exists('sha1')) {
                 return false;
             }
@@ -940,7 +953,7 @@ class Main
                 "url"       => $url,
                 "signature" => $Sign,
             ];
-            z::cache()->set($cacheKey, $signPackage, 3600);
+            Z::cache()->set($cacheKey, $signPackage, 3600);
         }
 
         return $signPackage;
@@ -952,16 +965,16 @@ class Main
      */
     public function getJsapiTicket()
     {
-        if (!$jsapiTicket = z::arrayGet($this->jsapiTicket, $this->getAppid())) {
+        if (!$jsapiTicket = Z::arrayGet($this->jsapiTicket, $this->getAppid())) {
             $cacheKey = $this->getUniqueKey() . '_jsapi_ticket' . $this->getAppid();
-            if (!$jsapiTicket = z::cache()->get($cacheKey)) {
+            if (!$jsapiTicket = Z::cache()->get($cacheKey)) {
                 $res = $this->instance()->getJsapiTicket();
                 if (!$res) {
                     return false;
                 }
                 $jsapiTicket = $res['ticket'];
                 $expire = $res['expires_in'] ? intval($res['expires_in']) - 100 : 3600;
-                z::cache()->set($cacheKey, $jsapiTicket, $expire);
+                Z::cache()->set($cacheKey, $jsapiTicket, $expire);
             }
             $this->setJsapiTicket($jsapiTicket);
         }
@@ -1011,7 +1024,7 @@ class Main
      */
     public function getAccessTokenOutTime()
     {
-        return z::cache()->get($this->getUniqueKey() . '_access_token_outTime');
+        return Z::cache()->get($this->getUniqueKey() . '_access_token_outTime');
     }
 
     /**
@@ -1067,8 +1080,8 @@ class Main
                 return false;
             }
             $this->authAccessToken = $result;
-            $this->openid = z::arrayGet($result, 'openid', z::arrayGet($result, 'OpenId'));
-            $this->userid = z::arrayGet($result, 'UserId', z::arrayGet($result, 'userid'));
+            $this->openid = Z::arrayGet($result, 'openid', Z::arrayGet($result, 'OpenId'));
+            $this->userid = Z::arrayGet($result, 'UserId', Z::arrayGet($result, 'userid'));
         }
 
         return $this->authAccessToken;
@@ -1082,23 +1095,23 @@ class Main
      */
     public function authCode($url = null, $oldCode = '')
     {
-        if (($code = z::get('code')) && ($oldCode !== $code)) {
+        if (($code = Z::get('code')) && ($oldCode !== $code)) {
             return $code;
         }
         if (!$url) {
-            $url = z::host(true, true, true);
+            $url = Z::host(true, true, true);
         }
         $urls = parse_url($url);
-        if ($query = z::arrayGet($urls, 'query', '')) {
+        if ($query = Z::arrayGet($urls, 'query', '')) {
             parse_str($query, $query);
             unset($query['code'], $query['state'], $query['scope']);
             $query = '?' . http_build_query($query);
         }
-        $port = z::arrayGet($urls, 'port');
-        $host = z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
-        $fragment = z::arrayGet($urls, 'fragment');
-        $url = z::arrayGet($urls, 'scheme') . '://' . $host . z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
-        z::redirect($this->getOauthRedirect($url, $this->getAuthState(), $this->getAuthScope()));
+        $port = Z::arrayGet($urls, 'port');
+        $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+        $fragment = Z::arrayGet($urls, 'fragment');
+        $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+        Z::redirect($this->getOauthRedirect($url, $this->getAuthState(), $this->getAuthScope()));
 
         return false;
     }
@@ -1112,7 +1125,7 @@ class Main
      */
     public function getOauthRedirect($callback = null, $state = '', $scope = 'snsapi_userinfo')
     {
-        (!$callback) && $callback = z::host(true, true, true);
+        (!$callback) && $callback = Z::host(true, true, true);
 
         return $this->instance()->getOauthRedirect($callback, $state, $scope);
     }
@@ -1198,11 +1211,11 @@ class Main
             $filepath = $saveFile . '/' . $filename[1];
             file_put_contents($filepath, $this->getHttp()->data());
 
-            return z::safePath($filepath, '');
+            return Z::safePath($filepath, '');
         }
         $result = @json_decode($this->getHttp()->data(), true);
-        $errorCode = z::arrayGet($result, 'errcode', 404);
-        $errorMsg = z::arrayGet($result, 'errmsg', '文件名获取失败');
+        $errorCode = Z::arrayGet($result, 'errcode', 404);
+        $errorMsg = Z::arrayGet($result, 'errmsg', '文件名获取失败');
         $this->setError($errorCode, $errorMsg);
         $this->errorLog('多媒体下载失败', $result);
 
@@ -1211,22 +1224,22 @@ class Main
 
     public function valid()
     {
-        if ($echoStr = z::get('echostr')) {
-            $signature = z::get('signature', '');
-            $timestamp = z::get('timestamp', '');
-            $nonce = z::get('nonce', '');
-            $msg_signature = z::get('msg_signature', '');
-            $this->errorLog(z::get(), $msg_signature);
+        if ($echoStr = Z::get('echostr')) {
+            $signature = Z::get('signature', '');
+            $timestamp = Z::get('timestamp', '');
+            $nonce = Z::get('nonce', '');
+            $msg_signature = Z::get('msg_signature', '');
+            $this->errorLog(Z::get(), $msg_signature);
             if ($msg_signature) {
                 $error = $this->getCrypt()->verifyUrl($this->getToken(), $timestamp, $nonce, $echoStr, $msg_signature, $echoStr);
             } else {
                 $error = $this->getUtil()->checkSignature($this->getToken(), $signature, $timestamp, $nonce);
             }
             if ($error == 0) {
-                z::finish($echoStr);
+                Z::finish($echoStr);
             } else {
                 $this->errorLog('解密valid失败' . $error);
-                z::finish('error');
+                Z::finish('error');
             }
         }
     }
@@ -1238,7 +1251,7 @@ class Main
     public function getUtil()
     {
         /** @var Util $class */
-        $class = z::extension('WeChat_Util');
+        $class = Z::extension('WeChat_Util');
 
         return $class;
     }
@@ -1254,7 +1267,7 @@ class Main
             $type = [$type];
         }
         foreach ($type as $item) {
-            z::di()->bind($this->getUniqueKey() . '_event_' . $item, $fn);
+            Z::di()->bind($this->getUniqueKey() . '_event_' . $item, $fn);
         }
 
         return $this;
@@ -1272,21 +1285,21 @@ class Main
             $type = $getRev['MsgType'];
             $typeAll = $this->getUniqueKey() . '_event_all';
             $taskName = $this->getUniqueKey() . '_event_' . $type;
-            if (z::di()->has($taskName)) {
-                z::di()->makeShared($taskName, [$this, $getRev, $type, $getRevXml]);
-            } elseif (z::di()->has($typeAll)) {
-                z::di()->makeShared($typeAll, [$this, $getRev, $type, $getRevXml]);
+            if (Z::di()->has($taskName)) {
+                Z::di()->makeShared($taskName, [$this, $getRev, $type, $getRevXml]);
+            } elseif (Z::di()->has($typeAll)) {
+                Z::di()->makeShared($typeAll, [$this, $getRev, $type, $getRevXml]);
             }
         } else {
             $this->errorLog('消息获取失败');
-            z::finish();
+            Z::finish();
         }
     }
 
     private function getRev()
     {
         if (empty($this->_receive)) {
-            $postStr = z::postRaw();
+            $postStr = Z::postRaw();
             if (!empty($postStr)) {
                 $this->_receive = (is_array($postStr)) ?
                     $postStr : (array)simplexml_load_string($postStr,
@@ -1295,10 +1308,10 @@ class Main
                     $this->log('解密消息');
                     $this->_encrypt = true;
                     $msg = '';
-                    $this->_signature = z::get('signature');
-                    $this->_timestamp = z::get('timestamp');
-                    $this->_nonce = z::get('nonce');
-                    $this->_msg_signature = z::get('msg_signature');
+                    $this->_signature = Z::get('signature');
+                    $this->_timestamp = Z::get('timestamp');
+                    $this->_nonce = Z::get('nonce');
+                    $this->_msg_signature = Z::get('msg_signature');
                     $errCode = $this->getCrypt()->decryptMsg(
                         $this->_msg_signature,
                         $this->_timestamp,
@@ -1364,7 +1377,7 @@ class Main
             }
             $this->log('最终返回微信', $result);
         }
-        z::finish($result);
+        Z::finish($result);
     }
 
     /**
@@ -1374,9 +1387,9 @@ class Main
      */
     public function runComponentPush($closure = null)
     {
-        $ticket = $this->getCrypt()->extractDecrypt(z::postRaw());
+        $ticket = $this->getCrypt()->extractDecrypt(Z::postRaw());
         $this->log('收到开放平台推送事件', $ticket);
-        if ($infoType = z::arrayGet($ticket, 'InfoType')) {
+        if ($infoType = Z::arrayGet($ticket, 'InfoType')) {
             $this->log('解密ComponentPush成功', $ticket);
             switch ($infoType) {
                 case 'component_verify_ticket':
@@ -1405,7 +1418,7 @@ class Main
     public function setComponentTicket($ticket)
     {
         $this->log('缓存component_verify_ticket', $ticket);
-        z::cache()->set($this->getUniqueKey('_ComponentTicket'), $ticket['ComponentVerifyTicket'], 24 * 3600);
+        Z::cache()->set($this->getUniqueKey('_ComponentTicket'), $ticket['ComponentVerifyTicket'], 24 * 3600);
     }
 
     /**
@@ -1419,6 +1432,6 @@ class Main
             return self::$errCode;
         }
 
-        return z::arrayGet(self::$errCode, $code, '未知错误');
+        return Z::arrayGet(self::$errCode, $code, '未知错误');
     }
 }

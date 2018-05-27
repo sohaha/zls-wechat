@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * Zls
  * @author        影浅
@@ -11,5 +13,5 @@ namespace Zls\WeChat;
  */
 interface WxInterface
 {
-	public function __construct(Main $wx);
+    public function __construct(Main $wx);
 }

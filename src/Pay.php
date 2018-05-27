@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * WeChat
  * @author      影浅-Seekwe
@@ -8,6 +10,7 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
+
 class Pay implements WxInterface
 {
 
