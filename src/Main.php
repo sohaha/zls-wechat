@@ -271,13 +271,14 @@ class Main
             case 42001://令牌过期
                 break;
             case 40001://accessToken无效
+                //case 40125:
                 $this->errorLog('缓存没过期，但是accessToken失效了:' . $this->reAccessToken);
                 if (!!$this->reAccessToken) {
                     $this->reAccessToken = ((int)$this->reAccessToken) - 1;
-                    $this->setAppsecret('cc31573bfa7af4cdc2ba327357af9234');
                     $this->accessToken = '';
                     $this->getAccessToken(false);
-                    $result = $this->reRequest();
+                    //$this->getError(true);
+                    //$result = $this->reRequest();
                 }
                 break;
         }
@@ -590,7 +591,7 @@ class Main
         return Z::cache()->get($this->getUniqueKey('_ComponentTicket'));
     }
 
-    public function getError($clean = \false)
+    public function getError($clean = false)
     {
         $error = ['code' => $this->errorCode, 'msg' => $this->errorMsg];
         if ($clean === true) {
@@ -623,43 +624,6 @@ class Main
             Z::cache()->set($this->getUniqueKey('_ComponentRefreshToken_' . $appid), $componentRefreshToken,
                 $expiresIn);
         }
-    }
-
-    public function reRequest()
-    {
-        $result = false;
-        $backtrace = debug_backtrace();
-        foreach ($backtrace as $k) {
-            if (Z::arrayGet($k, 'class') === __CLASS__ && Z::arrayGet($k, 'function') === 'request') {
-                $args = $k['args'];
-                $url = Z::arrayGet($args, 0);
-                $urls = parse_url($url);
-                if ($query = Z::arrayGet($urls, 'query', '')) {
-                    parse_str($query, $query);
-                    $argsKey = ['appid' => 'getAppid', 'secret' => 'getAppsecret', 'access_token' => 'getAccessToken'];
-                    foreach (array_keys($argsKey) as $v) {
-                        if (isset($query[$v])) {
-                            $getMethod = $argsKey[$v];
-                            $query[$v] = $this->$getMethod();
-                        }
-                    }
-                    $query = '?' . http_build_query($query);
-                }
-                $port = Z::arrayGet($urls, 'port');
-                $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
-                $fragment = Z::arrayGet($urls, 'fragment');
-                $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
-                $data = Z::arrayGet($args, 1);
-                $type = Z::arrayGet($args, 2, 'get');
-                $dataType = Z::arrayGet($args, 3, 'json');
-                $responseType = Z::arrayGet($args, 4, 'json');
-                $atUpload = Z::arrayGet($args, 5, false);
-                $result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
-                break;
-            }
-        }
-
-        return $result;
     }
 
     private function getErrText($err)
@@ -749,6 +713,45 @@ class Main
         $this->getCrypt()->setToken($token);
 
         return $this;
+    }
+
+    public function reRequest()
+    {
+        $result = false;
+        $backtrace = debug_backtrace();
+        foreach ($backtrace as $k) {
+            if (Z::arrayGet($k, 'class') === __CLASS__ && Z::arrayGet($k, 'function') === 'request') {
+                $args = $k['args'];
+                $url = Z::arrayGet($args, 0);
+                $urls = parse_url($url);
+                if ($query = Z::arrayGet($urls, 'query', '')) {
+                    parse_str($query, $query);
+                    $argsKey = ['appid' => 'getAppid', 'secret' => 'getAppsecret', 'access_token' => 'getAccessToken'];
+                    foreach (array_keys($argsKey) as $v) {
+                        if (isset($query[$v])) {
+                            $getMethod = $argsKey[$v];
+                            $query[$v] = $this->$getMethod();
+                        }
+                    }
+                    $query = '?' . http_build_query($query);
+                }
+                $port = Z::arrayGet($urls, 'port');
+                $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+                $fragment = Z::arrayGet($urls, 'fragment');
+                $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+                $args[0] = $url;
+                //$data = Z::arrayGet($args, 1);
+                //$type = Z::arrayGet($args, 2, 'get');
+                //$dataType = Z::arrayGet($args, 3, 'json');
+                //$responseType = Z::arrayGet($args, 4, 'json');
+                //$atUpload = Z::arrayGet($args, 5, false);
+                $result = call_user_func_array([$this, 'request'], $args);
+                //$result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
+                break;
+            }
+        }
+
+        return $result;
     }
 
     /**
