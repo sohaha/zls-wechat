@@ -4,7 +4,7 @@ namespace Zls\Wechat\Artisan;
 
 use Z;
 
-class WeChat extends \Zls\Artisan\Command
+class WeChat extends \Zls\Artisan\Artisan
 {
 
     public function execute(\Zls_CliArgs $args)

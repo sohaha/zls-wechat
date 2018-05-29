@@ -1,23 +1,22 @@
 {
-    "name": "zls/wechat",
-    "description": "微信开发",
-    "type": "library",
-    "license": "MIT",
-  	"minimum-stability": "dev",
-    "authors": [
-        {
-            "name": "影浅",
-            "email": "seekwe@gmail.com"
-        }
-    ],
-    "autoload":
+  "name": "zls/wechat",
+  "description": "微信开发",
+  "type": "library",
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "authors": [
     {
-        "psr-4":
-        {
-            "Zls\\WeChat\\": "src/"
-        }
-    },
-    "require": {
-        "zls/action": "^1.0.0"
+      "name": "影浅",
+      "email": "seekwe@gmail.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Zls\\WeChat\\": "src/"
+    }
+  },
+  "require": {
+    "zls/action": "^1.0.0",
+    "zls/artisan": "^1.0.0"
+  }
 }
