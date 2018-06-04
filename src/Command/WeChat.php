@@ -22,9 +22,9 @@ class WeChat extends \Zls\Command\Command
         $config = Z::config();
         $path = z::realPath(ZLS_APP_PATH . 'config/default/wechat.php', false, false);
         if (!file_exists($path) || $force) {
-            $this->echoN("copy config: {$origin} -> {$path}");
+            $this->printStrN("copy config: {$origin} -> {$path}");
             copy($origin, $path);
-            //$this->echoN('Status: ' . @copy($origin, $path));
+            //$this->printStrN('Status: ' . @copy($origin, $path));
             if ($config->find('ini')) {
                 $ini = z::config('ini');
                 /**
@@ -49,13 +49,8 @@ class WeChat extends \Zls\Command\Command
             }
         } else {
             $this->error('wechat config already exists');
-            $this->echoN('you can use -force to force the config file');
+            $this->printStrN('you can use -force to force the config file');
         }
-    }
-
-    public function title()
-    {
-        return 'WeChat Packages';
     }
 
     public function options()
