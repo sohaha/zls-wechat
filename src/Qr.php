@@ -88,8 +88,18 @@ class Qr implements WxInterface
         $logoQrHeight = $logoHeight / $scale;
         $fromWidth = ($qrWidth - $logoQrWidth) / 2;
         $fontColor = imagecolorallocate($QR, 0, 0, 0);
-        imagecopyresampled($QR, $logo, $fromWidth, $fromWidth, 0, 0, $logoQrWidth,
-            $logoQrHeight, $logoWidth, $logoHeight);
+        imagecopyresampled(
+            $QR,
+            $logo,
+            $fromWidth,
+            $fromWidth,
+            0,
+            0,
+            $logoQrWidth,
+            $logoQrHeight,
+            $logoWidth,
+            $logoHeight
+        );
         if ($text) {
             $fontSize = $qrWidth / 25;
             if ($fontPath) {

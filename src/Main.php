@@ -39,7 +39,13 @@ class Main
     private $uniqueKey;
     private $appsecret;
     private $token;
-    private $_receive, $_encrypt, $_signature, $_timestamp, $_nonce, $_msg_signature, $_receiveXml;
+    private $_receive;
+    private $_encrypt;
+    private $_signature;
+    private $_timestamp;
+    private $_nonce;
+    private $_msg_signature;
+    private $_receiveXml;
     private $accessToken;
     private $jsapiTicket;
     private $openid;
@@ -175,8 +181,10 @@ class Main
             'component_appid'    => $this->getComponentAppid(),
             'authorization_code' => $authorization_code,
         ];
-        if ($result = $this->post(self::APIURL . '/cgi-bin/component/api_query_auth?component_access_token=' . $this->getComponentAccessToken(),
-            $data)
+        if ($result = $this->post(
+            self::APIURL . '/cgi-bin/component/api_query_auth?component_access_token=' . $this->getComponentAccessToken(),
+            $data
+        )
         ) {
             $this->log('获取开放平台接口调用凭据和授权信息成功', $result);
         } else {
@@ -477,8 +485,11 @@ class Main
             $this->setAppid($appid);
         }
         if ($componentAuthorizerAccessToken) {
-            Z::cache()->set($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
-                $componentAuthorizerAccessToken, $expiresIn);
+            Z::cache()->set(
+                $this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid),
+                $componentAuthorizerAccessToken,
+                $expiresIn
+            );
         }
         $this->componentAuthorizerAccessToken = $componentAuthorizerAccessToken;
     }
@@ -500,8 +511,10 @@ class Main
             'authorizer_refresh_token' => $authorizerRefreshToken ?: $this->getComponentRefreshToken($appid),
         ];
 
-        return Z::tap($this->post(self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
-            $data), function ($resule) use ($appid, $data) {
+        return Z::tap($this->post(
+            self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
+            $data
+        ), function ($resule) use ($appid, $data) {
             if ($resule) {
                 $this->getCallbackRefreshComponent($appid, $resule);
                 $expiresIn = $resule['expires_in'] - 300;
@@ -544,7 +557,9 @@ class Main
                 'component_verify_ticket' => $this->getComponentTicket(),
             ];
             if ($result = $this->post(
-                self::APIURL . '/cgi-bin/component/api_component_token', $data)
+                self::APIURL . '/cgi-bin/component/api_component_token',
+                $data
+            )
             ) {
                 $this->log('获取开放平台AccessToken成功', $result);
                 $this->componentAccessToken = $result['component_access_token'];
@@ -555,8 +570,11 @@ class Main
                 $this->errorLog('获取开放平台AccessToken失败', $this->getError(), $data);
             }
         }
-        $this->log('获取开放平台AccessToken:', $this->componentAccessToken,
-            '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn')));
+        $this->log(
+            '获取开放平台AccessToken:',
+            $this->componentAccessToken,
+            '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn'))
+        );
 
         return $this->componentAccessToken;
     }
@@ -628,8 +646,11 @@ class Main
             $appid = $this->getAppid();
         }
         if ($componentRefreshToken) {
-            Z::cache()->set($this->getUniqueKey('_ComponentRefreshToken_' . $appid), $componentRefreshToken,
-                $expiresIn);
+            Z::cache()->set(
+                $this->getUniqueKey('_ComponentRefreshToken_' . $appid),
+                $componentRefreshToken,
+                $expiresIn
+            );
         }
     }
 
@@ -650,8 +671,10 @@ class Main
     {
         $data = ['component_appid' => $this->getComponentAppid()];
         $PreAuthCode = '';
-        $result = $this->post(self::APIURL . '/cgi-bin/component/api_create_preauthcode?component_access_token=' . $this->getComponentAccessToken(),
-            $data);
+        $result = $this->post(
+            self::APIURL . '/cgi-bin/component/api_create_preauthcode?component_access_token=' . $this->getComponentAccessToken(),
+            $data
+        );
         if ($result) {
             $this->log('获取开放平台预授权码成功', $result);
             $PreAuthCode = $result['pre_auth_code'];
@@ -669,14 +692,16 @@ class Main
     {
         /**  @var Crypt $class */
         $class = Z::tap(
-            Z::extension('WeChat_Crypt'), function ($class) {
-            /**  @var Crypt $class */
-            if ($this->getComponentAppid()) {
-                $class->msgCrypt($this->getComponentAppid(), $this->getEncodingAesKey(), $this->getToken());
-            } else {
-                $class->msgCrypt($this->getAppid(), $this->getEncodingAesKey(), $this->getToken());
+            Z::extension('WeChat_Crypt'),
+            function ($class) {
+                /**  @var Crypt $class */
+                if ($this->getComponentAppid()) {
+                    $class->msgCrypt($this->getComponentAppid(), $this->getEncodingAesKey(), $this->getToken());
+                } else {
+                    $class->msgCrypt($this->getAppid(), $this->getEncodingAesKey(), $this->getToken());
+                }
             }
-        });
+        );
 
         return $class;
     }
@@ -1187,8 +1212,11 @@ class Main
             $postStr = Z::postRaw();
             if (!empty($postStr)) {
                 $this->_receive = (is_array($postStr)) ?
-                    $postStr : (array)simplexml_load_string($postStr,
-                        'SimpleXMLElement', LIBXML_NOCDATA);
+                    $postStr : (array)simplexml_load_string(
+                        $postStr,
+                        'SimpleXMLElement',
+                        LIBXML_NOCDATA
+                    );
                 if (isset($this->_receive['Encrypt']) && (!isset($this->_receive['MsgType']))) {
                     $this->log('解密消息');
                     $this->_encrypt = true;
@@ -1208,7 +1236,8 @@ class Main
                         $this->_receiveXml = $msg;
                         $this->_receive = (array)simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
                     } else {
-                        $this->errorLog('消息解密失败:' . $errCode,
+                        $this->errorLog(
+                            '消息解密失败:' . $errCode,
                             $this->_msg_signature,
                             $this->_timestamp,
                             $this->_nonce,

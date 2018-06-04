@@ -301,5 +301,4 @@ class Util
     public function payTemplate($data)
     {
     }
-
 }

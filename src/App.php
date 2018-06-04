@@ -15,7 +15,8 @@ use Z;
  */
 class App implements WxInterface
 {
-    private $wx, $sessionKey;
+    private $wx;
+    private $sessionKey;
 
     public function __construct(Main $wx)
     {

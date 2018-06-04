@@ -13,7 +13,6 @@ use Z;
 
 class Pay implements WxInterface
 {
-
     const API_ORDERQUERY = 'https://api.mch.weixin.qq.com/pay/orderquery';
     const API_ORDERQUERY_QY = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/queryworkwxredpack';
 

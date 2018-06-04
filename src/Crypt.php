@@ -258,7 +258,6 @@ class Crypt
      */
     public function decrypt($encrypted, $appid = null)
     {
-
         $iv = substr($this->key, 0, 16);
         try {
             if (function_exists('openssl_decrypt')) {
@@ -421,8 +420,11 @@ class Crypt
             $Encrypt = $array_s->item(0)->nodeValue;
             $msg = $this->decrypt($Encrypt, $AppId);
 
-            return (array)simplexml_load_string(array_pop($msg),
-                'SimpleXMLElement', LIBXML_NOCDATA);
+            return (array)simplexml_load_string(
+                array_pop($msg),
+                'SimpleXMLElement',
+                LIBXML_NOCDATA
+            );
         } catch (\Exception $e) {
             return [self::$GenReturnXmlError, null];
         }

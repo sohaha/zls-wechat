@@ -6,7 +6,6 @@ use Z;
 
 class WeChat extends \Zls\Command\Command
 {
-
     public function execute($args)
     {
         $this->init($args);
@@ -66,7 +65,6 @@ class WeChat extends \Zls\Command\Command
 
     public function example()
     {
-
     }
 
     /**

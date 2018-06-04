@@ -68,8 +68,10 @@ class Basi implements WxInterface
             $openid = z::arrayGet($authData, 'openid');
         }
 
-        return $wx->get($wx::APIURL . '/sns/userinfo?access_token=' . z::arrayGet($authData,
-                'access_token') . '&openid=' . $openid . '&lang=zh_CN');
+        return $wx->get($wx::APIURL . '/sns/userinfo?access_token=' . z::arrayGet(
+            $authData,
+                'access_token'
+        ) . '&openid=' . $openid . '&lang=zh_CN');
     }
 
     /**
