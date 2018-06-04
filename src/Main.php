@@ -51,22 +51,11 @@ class Main
     private $agentid;
     private $reply = true;
 
-    public function __destruct()
+    public function __construct()
     {
-        $this->clear();
-    }
-
-    /**
-     * 清除赋值/模拟销毁
-     */
-    public function clear()
-    {
-        $this->_receive = null;
-        $this->_receiveXml = null;
-        $this->componentAccessToken = null;
-        $this->accessToken = null;
-        $this->componentAuthorizerAccessToken = null;
-        $this->openid = null;
+        if (Z::config()->find('wechat')) {
+            $this->init(Z::config('wechat'));
+        }
     }
 
     /**
@@ -102,6 +91,24 @@ class Main
         $class = Z::extension('WeChat_Util');
 
         return $class;
+    }
+
+    public function __destruct()
+    {
+        $this->clear();
+    }
+
+    /**
+     * 清除赋值/模拟销毁
+     */
+    public function clear()
+    {
+        $this->_receive = null;
+        $this->_receiveXml = null;
+        $this->componentAccessToken = null;
+        $this->accessToken = null;
+        $this->componentAuthorizerAccessToken = null;
+        $this->openid = null;
     }
 
     public function __call($name, $value)
