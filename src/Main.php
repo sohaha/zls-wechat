@@ -505,13 +505,16 @@ class Main
         if (!$appid) {
             $appid = $this->getAppid();
         }
+        if (!$authorizerRefreshToken) {
+            $authorizerRefreshToken = $this->getComponentRefreshToken($appid);
+        }
         $data = [
             'component_appid'          => $this->getComponentAppid(),
             'authorizer_appid'         => $appid,
-            'authorizer_refresh_token' => $authorizerRefreshToken ?: $this->getComponentRefreshToken($appid),
+            'authorizer_refresh_token' => $authorizerRefreshToken,
         ];
 
-        return Z::tap($this->post(
+        return $authorizerRefreshToken ? Z::tap($this->post(
             self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
             $data
         ), function ($resule) use ($appid, $data) {
@@ -524,7 +527,7 @@ class Main
             } else {
                 $this->errorLog('刷新AuthorizerAccessToken失败', $data, $this->getComponentAccessToken(), $this->getError());
             }
-        });
+        }) : false;
     }
 
     /**
@@ -551,30 +554,28 @@ class Main
         $cacheKey = $this->getUniqueKey('_ComponentAccessToken');
         $this->componentAccessToken = $this->componentAccessToken ?: Z::cache()->get($cacheKey);
         if ($cache === false || !$this->componentAccessToken) {
-            $data = [
-                'component_appid'         => $this->getComponentAppid(),
-                'component_appsecret'     => $this->getComponentAppsecret(),
-                'component_verify_ticket' => $this->getComponentTicket(),
-            ];
-            if ($result = $this->post(
-                self::APIURL . '/cgi-bin/component/api_component_token',
-                $data
-            )
-            ) {
-                $this->log('获取开放平台AccessToken成功', $result);
-                $this->componentAccessToken = $result['component_access_token'];
-                $expiresIn = $result['expires_in'] - 1800;
-                Z::cache()->set($cacheKey, $this->componentAccessToken, $expiresIn);
-                Z::cache()->set($cacheKey . '_expiresIn', time() + $expiresIn, $expiresIn);
+            $ticket = $this->getComponentTicket();
+            if ($ticket) {
+                $data = [
+                    'component_appid'         => $this->getComponentAppid(),
+                    'component_appsecret'     => $this->getComponentAppsecret(),
+                    'component_verify_ticket' => $this->getComponentTicket(),
+                ];
+                if ($result = $this->post(self::APIURL . '/cgi-bin/component/api_component_token', $data)) {
+                    $this->log('获取开放平台AccessToken成功', $result);
+                    $this->componentAccessToken = $result['component_access_token'];
+                    $expiresIn = $result['expires_in'] - 1800;
+                    Z::cache()->set($cacheKey, $this->componentAccessToken, $expiresIn);
+                    Z::cache()->set($cacheKey . '_expiresIn', time() + $expiresIn, $expiresIn);
+                } else {
+                    $this->errorLog('获取开放平台AccessToken失败', $this->getError(), $data);
+                }
+                $this->log('获取开放平台AccessToken:', $this->componentAccessToken, '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn'))
+                );
             } else {
-                $this->errorLog('获取开放平台AccessToken失败', $this->getError(), $data);
+                $this->errorLog('Ticket不存在');
             }
         }
-        $this->log(
-            '获取开放平台AccessToken:',
-            $this->componentAccessToken,
-            '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn'))
-        );
 
         return $this->componentAccessToken;
     }
@@ -592,6 +593,15 @@ class Main
     }
 
     /**
+     * 获取component_verify_ticket
+     * @return mixed
+     */
+    public function getComponentTicket()
+    {
+        return Z::cache()->get($this->getUniqueKey('_ComponentTicket'));
+    }
+
+    /**
      * @return mixed
      */
     public function getComponentAppsecret()
@@ -605,15 +615,6 @@ class Main
     public function setComponentAppsecret($componentAppsecret)
     {
         $this->componentAppsecret = $componentAppsecret;
-    }
-
-    /**
-     * 获取component_verify_ticket
-     * @return mixed
-     */
-    public function getComponentTicket()
-    {
-        return Z::cache()->get($this->getUniqueKey('_ComponentTicket'));
     }
 
     public function getError($clean = false)
@@ -1171,7 +1172,7 @@ class Main
      * @param $fn
      * @return $this
      */
-    public function on($type, $fn)
+    public function on($type, \Closure $fn)
     {
         if (!is_array($type)) {
             $type = [$type];
@@ -1218,7 +1219,6 @@ class Main
                         LIBXML_NOCDATA
                     );
                 if (isset($this->_receive['Encrypt']) && (!isset($this->_receive['MsgType']))) {
-                    $this->log('解密消息');
                     $this->_encrypt = true;
                     $msg = '';
                     $this->_signature = Z::get('signature');
@@ -1265,7 +1265,6 @@ class Main
      */
     public function setReply($reply)
     {
-        $this->log('设置是否被动回复状态:', $reply);
         $this->reply = $reply;
     }
 
@@ -1286,7 +1285,6 @@ class Main
             $data = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
             $result = $this->getUtil()->getXml($type, $data);
             if ($this->_encrypt === true) {
-                $this->log('原始返回微信', $result);
                 $this->getCrypt()->encryptMsg($result, $this->_timestamp, $this->_nonce, $result);
             }
             $this->log('最终返回微信', $result);
@@ -1304,11 +1302,8 @@ class Main
         $ticket = $this->getCrypt()->extractDecrypt(Z::postRaw());
         $this->log('收到开放平台推送事件', $ticket);
         if ($infoType = Z::arrayGet($ticket, 'InfoType')) {
-            $this->log('解密ComponentPush成功', $ticket);
             switch ($infoType) {
                 case 'component_verify_ticket':
-                    $this->log(microtime(true) - IN_ZLS);
-                    $this->log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>component_verify_ticket');
                     $this->setComponentTicket($ticket);
                     break;
             }
@@ -1318,7 +1313,7 @@ class Main
 
             return $ticket;
         } else {
-            $this->errorLog('解密ComponentPush失败', $ticket);
+            $this->errorLog('解密开放平台推送事件失败', $ticket);
 
             return false;
         }
@@ -1332,7 +1327,8 @@ class Main
     public function setComponentTicket($ticket)
     {
         $this->log('缓存component_verify_ticket', $ticket);
-        Z::cache()->set($this->getUniqueKey('_ComponentTicket'), $ticket['ComponentVerifyTicket'], 24 * 3600);
+        //缓存一个礼拜
+        Z::cache()->set($this->getUniqueKey('_ComponentTicket'), $ticket['ComponentVerifyTicket'], 604800);
     }
 
     /**
