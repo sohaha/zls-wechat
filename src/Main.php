@@ -265,7 +265,6 @@ class Main
         $trace = Z::arrayGet(debug_backtrace(), 1);
         $arg = $trace['args'];
         $data = [
-            'time' => date('Y-m-d H:i:s'),
             'file' => Z::safePath($trace['file']),
             'line' => $trace['line'],
         ];
