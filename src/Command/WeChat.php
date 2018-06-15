@@ -13,7 +13,7 @@ class WeChat extends \Zls\Command\Command
 
     public function init($args)
     {
-        $force = Z::arrayGet($args, ['force', 'F']);
+        $force = Z::arrayGet($args, ['-force', 'F']);
         $this->copy(z::realPath(__DIR__ . '/../Config/wechat.php', false, false), $force);
     }
 
@@ -55,7 +55,7 @@ class WeChat extends \Zls\Command\Command
 
     public function options()
     {
-        return ['-force' => ' Overwrite old config file'];
+        return ['--force, -F' => ' Overwrite old config file'];
     }
 
     public function example()

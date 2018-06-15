@@ -72,7 +72,7 @@ class Main
         if (!$data) {
             $data = Z::config('wechat');
         }
-        $this->appid = Z::arrayGet($data, 'appid', Z::arrayGet($data, 'corpid'));
+        $this->appid = Z::arrayGet($data, 'appid')?:Z::arrayGet($data, 'corpid');
         $this->appsecret = Z::arrayGet($data, 'appsecret');
         $this->token = Z::arrayGet($data, 'token');
         $this->encodingAesKey = Z::arrayGet($data, 'encodingAesKey');
