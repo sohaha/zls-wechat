@@ -55,6 +55,7 @@ class Main
     private $authAccessToken;
     private $refreshComponentCallback;
     private $agentid;
+    private $reAccessToken;
     private $reply = true;
 
     public function __construct()
@@ -72,7 +73,7 @@ class Main
         if (!$data) {
             $data = Z::config('wechat');
         }
-        $this->appid = Z::arrayGet($data, 'appid')?:Z::arrayGet($data, 'corpid');
+        $this->appid = Z::arrayGet($data, 'appid') ?: Z::arrayGet($data, 'corpid');
         $this->appsecret = Z::arrayGet($data, 'appsecret');
         $this->token = Z::arrayGet($data, 'token');
         $this->encodingAesKey = Z::arrayGet($data, 'encodingAesKey');
@@ -772,13 +773,7 @@ class Main
                 $fragment = Z::arrayGet($urls, 'fragment');
                 $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
                 $args[0] = $url;
-                //$data = Z::arrayGet($args, 1);
-                //$type = Z::arrayGet($args, 2, 'get');
-                //$dataType = Z::arrayGet($args, 3, 'json');
-                //$responseType = Z::arrayGet($args, 4, 'json');
-                //$atUpload = Z::arrayGet($args, 5, false);
                 $result = call_user_func_array([$this, 'request'], $args);
-                //$result = $this->request($url, $data, $type, $dataType, $responseType, $atUpload);
                 break;
             }
         }
@@ -1212,11 +1207,7 @@ class Main
             $postStr = Z::postRaw();
             if (!empty($postStr)) {
                 $this->_receive = (is_array($postStr)) ?
-                    $postStr : (array)simplexml_load_string(
-                        $postStr,
-                        'SimpleXMLElement',
-                        LIBXML_NOCDATA
-                    );
+                    $postStr : $this->FromXml($postStr);
                 if (isset($this->_receive['Encrypt']) && (!isset($this->_receive['MsgType']))) {
                     $this->_encrypt = true;
                     $msg = '';
@@ -1233,7 +1224,7 @@ class Main
                     );
                     if ($errCode === 0) {
                         $this->_receiveXml = $msg;
-                        $this->_receive = (array)simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
+                        $this->_receive = $this->FromXml($msg);
                     } else {
                         $this->errorLog(
                             '消息解密失败:' . $errCode,
@@ -1249,6 +1240,19 @@ class Main
         }
 
         return [$this->_receive, $this->_receiveXml];
+    }
+
+    protected function FromXml($msg)
+    {
+        try {
+            return (array)simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
+        } catch (\Exception $e) {
+            $err = $e->getMessage();
+            $this->errorLog('simplexmlLoad解析失败', $err, $msg);
+            Z::throwIf(true, 'Exception', $err);
+        }
+
+        return false;
     }
 
     /**

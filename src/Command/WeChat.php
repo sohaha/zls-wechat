@@ -60,6 +60,7 @@ class WeChat extends \Zls\Command\Command
 
     public function example()
     {
+
     }
 
     /**
