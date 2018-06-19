@@ -157,7 +157,7 @@ class Main
                 $appid = $authInfo['authorization_info']['authorizer_appid'];
                 $accessToken = $authInfo['authorization_info']['authorizer_access_token'];
                 $refreshToken = $authInfo['authorization_info']['authorizer_refresh_token'];
-                $expiresIn = $authInfo['authorization_info']['expires_in'] - 300;
+                $expiresIn = $authInfo['authorization_info']['expires_in'] - 1800;
                 $this->setComponentAuthorizerAccessToken($accessToken, $appid, $expiresIn);
                 //刷新密钥缓存一个礼拜
                 $this->log('刷新密钥缓存一个礼拜', $appid, $refreshToken);
@@ -330,7 +330,7 @@ class Main
                         return false;
                     }
                     $access_token = $res['access_token'];
-                    $expire = Z::arrayGet($res, 'expires_in', 1800);
+                    $expire = Z::arrayGet($res, 'expires_in', 2000);
                     $expire = intval($expire) > 1800 ? $expire - 1800 : 3600;
                     Z::cache()->set($cacheKey, $access_token, $expire);
                     Z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
@@ -520,7 +520,7 @@ class Main
         ), function ($resule) use ($appid, $data) {
             if ($resule) {
                 $this->getCallbackRefreshComponent($appid, $resule);
-                $expiresIn = $resule['expires_in'] - 300;
+                $expiresIn = $resule['expires_in'] - 1800;
                 $this->accessTokenOutTime($expiresIn);
                 $this->setComponentAuthorizerAccessToken($resule['authorizer_access_token'], $appid, $expiresIn);
                 $this->setComponentRefreshToken($resule['authorizer_refresh_token'], $appid, 602000);
@@ -890,7 +890,7 @@ class Main
                     return false;
                 }
                 $jsapiTicket = $res['ticket'];
-                $expire = $res['expires_in'] ? intval($res['expires_in']) - 100 : 3600;
+                $expire = $res['expires_in'] ? intval($res['expires_in']) - 1800 : 3600;
                 Z::cache()->set($cacheKey, $jsapiTicket, $expire);
             }
             $this->setJsapiTicket($jsapiTicket);
