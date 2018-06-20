@@ -21,15 +21,15 @@ use Z;
  */
 class Main
 {
-    const APIURL = 'https://api.weixin.qq.com';
-    const OPENURL = 'https://open.weixin.qq.com';
-    const FILEURL = 'https://file.api.weixin.qq.com';
-    const QYAPIURL = 'https://qyapi.weixin.qq.com';
+    const APIURL    = 'https://api.weixin.qq.com';
+    const OPENURL   = 'https://open.weixin.qq.com';
+    const FILEURL   = 'https://file.api.weixin.qq.com';
+    const QYAPIURL  = 'https://qyapi.weixin.qq.com';
     const QYOPENURL = 'https://open.weixin.qq.com';
     public static $errCode;
-    private $debug = true;
+    private $debug     = true;
     private $errorCode = -1;
-    private $errorMsg = '参数错误';
+    private $errorMsg  = '参数错误';
     private $encodingAesKey;
     private $appid;
     private $componentAppid;
@@ -73,18 +73,18 @@ class Main
         if (!$data) {
             $data = Z::config('wechat');
         }
-        $this->appid = Z::arrayGet($data, 'appid') ?: Z::arrayGet($data, 'corpid');
-        $this->appsecret = Z::arrayGet($data, 'appsecret');
-        $this->token = Z::arrayGet($data, 'token');
-        $this->encodingAesKey = Z::arrayGet($data, 'encodingAesKey');
-        $this->componentAppid = Z::arrayGet($data, 'componentAppid');
+        $this->appid              = Z::arrayGet($data, 'appid') ?: Z::arrayGet($data, 'corpid');
+        $this->appsecret          = Z::arrayGet($data, 'appsecret');
+        $this->token              = Z::arrayGet($data, 'token');
+        $this->encodingAesKey     = Z::arrayGet($data, 'encodingAesKey');
+        $this->componentAppid     = Z::arrayGet($data, 'componentAppid');
         $this->componentAppsecret = Z::arrayGet($data, 'componentAppsecret');
-        $this->debug = Z::arrayGet($data, 'debug');
-        $this->agentid = Z::arrayGet($data, 'agentid');
-        $this->reAccessToken = Z::arrayGet($data, 'reAccessToken', 1);
+        $this->debug              = Z::arrayGet($data, 'debug');
+        $this->agentid            = Z::arrayGet($data, 'agentid');
+        $this->reAccessToken      = Z::arrayGet($data, 'reAccessToken', 1);
         $this->setUniqueKey();
         /** @var Util $util */
-        $util = $this->getUtil();
+        $util          = $this->getUtil();
         self::$errCode = $util->errCode;
     }
 
@@ -110,18 +110,18 @@ class Main
      */
     public function clear()
     {
-        $this->_receive = null;
-        $this->_receiveXml = null;
-        $this->componentAccessToken = null;
-        $this->accessToken = null;
+        $this->_receive                       = null;
+        $this->_receiveXml                    = null;
+        $this->componentAccessToken           = null;
+        $this->accessToken                    = null;
         $this->componentAuthorizerAccessToken = null;
-        $this->openid = null;
+        $this->openid                         = null;
     }
 
     public function __call($name, $value)
     {
         $className = 'Zls_WeChat_' . str_replace('get', '', $name);
-        $class = Z::factory($className, true, null, [$this]);
+        $class     = Z::factory($className, true, null, [$this]);
 
         return $class;
     }
@@ -154,10 +154,10 @@ class Main
                     unset($_GET['auth_code']);
                     $this->runComponentAuth($redirect_uri);
                 }
-                $appid = $authInfo['authorization_info']['authorizer_appid'];
-                $accessToken = $authInfo['authorization_info']['authorizer_access_token'];
+                $appid        = $authInfo['authorization_info']['authorizer_appid'];
+                $accessToken  = $authInfo['authorization_info']['authorizer_access_token'];
                 $refreshToken = $authInfo['authorization_info']['authorizer_refresh_token'];
-                $expiresIn = $authInfo['authorization_info']['expires_in'] - 1800;
+                $expiresIn    = $authInfo['authorization_info']['expires_in'] - 1800;
                 $this->setComponentAuthorizerAccessToken($accessToken, $appid, $expiresIn);
                 //刷新密钥缓存一个礼拜
                 $this->log('刷新密钥缓存一个礼拜', $appid, $refreshToken);
@@ -231,7 +231,7 @@ class Main
         $result = ($type == 'get') ? $this->getHttp()->get($url, $data) : $this->getHttp()->post($url, $data, null, 0, $atUpload);
         $this->log('接口请求', $url, $data, $result);
         if ($responseType === 'json') {
-            $result = @json_decode($result, true);
+            $result  = @json_decode($result, true);
             $errcode = Z::arrayGet($result, 'errcode', '');
             if (!$result || !empty($errcode)) {
                 return $this->setError($errcode, $this->getErrText($result));
@@ -264,8 +264,8 @@ class Main
     protected function output()
     {
         $trace = Z::arrayGet(debug_backtrace(), 1);
-        $arg = $trace['args'];
-        $data = [
+        $arg   = $trace['args'];
+        $data  = [
             'file' => Z::safePath($trace['file']),
             'line' => $trace['line'],
         ];
@@ -283,23 +283,23 @@ class Main
     {
         $result = false;
         switch ($errorCode) {
-            case 42001://令牌过期
-                break;
-            case 40001://accessToken无效
-                //case 40125:
-                $this->errorLog('缓存没过期，但是accessToken失效了:' . $this->reAccessToken);
-                if (!!$this->reAccessToken) {
-                    $this->reAccessToken = ((int)$this->reAccessToken) - 1;
-                    $this->accessToken = '';
-                    $this->getAccessToken(false);
-                    //$this->getError(true);
-                    //$result = $this->reRequest();
-                }
-                break;
+        case 42001: //令牌过期
+            break;
+        case 40001: //accessToken无效
+            //case 40125:
+            $this->errorLog('缓存没过期，但是accessToken失效了:' . $this->reAccessToken);
+            if (!!$this->reAccessToken) {
+                $this->reAccessToken = ((int) $this->reAccessToken) - 1;
+                $this->accessToken   = '';
+                $this->getAccessToken(false);
+                //$this->getError(true);
+                //$result = $this->reRequest();
+            }
+            break;
         }
         if ($this->errorCode <= 0 || $force === true) {
             $this->errorCode = $errorCode;
-            $this->errorMsg = $errorMsg;
+            $this->errorMsg  = $errorMsg;
         }
 
         return $result;
@@ -322,7 +322,7 @@ class Main
     {
         if (!$this->getComponentAppid()) {
             if (!$this->accessToken) {
-                $agentid = $this->getAgentid() ?: '';
+                $agentid  = $this->getAgentid() ?: '';
                 $cacheKey = $this->getUniqueKey() . $agentid . '_access_token';
                 if ($cache != true || !$access_token = Z::cache()->get($cacheKey)) {
                     $res = $this->instance()->getAccessToken();
@@ -330,8 +330,8 @@ class Main
                         return false;
                     }
                     $access_token = $res['access_token'];
-                    $expire = Z::arrayGet($res, 'expires_in', 2000);
-                    $expire = intval($expire) > 1800 ? $expire - 1800 : 3600;
+                    $expire       = Z::arrayGet($res, 'expires_in', 2000);
+                    $expire       = intval($expire) > 1800 ? $expire - 1800 : 3600;
                     Z::cache()->set($cacheKey, $access_token, $expire);
                     Z::cache()->set($cacheKey . '_outTime', time() + $expire, $expire + 200);
                     $this->accessTokenOutTime($expire);
@@ -449,7 +449,7 @@ class Main
             $this->getCrypt()->setAppId($appid);
         }
         $this->componentAuthorizerAccessToken = null;
-        $this->accessToken = null;
+        $this->accessToken                    = null;
 
         return $this;
     }
@@ -551,7 +551,7 @@ class Main
      */
     public function getComponentAccessToken($cache = true)
     {
-        $cacheKey = $this->getUniqueKey('_ComponentAccessToken');
+        $cacheKey                   = $this->getUniqueKey('_ComponentAccessToken');
         $this->componentAccessToken = $this->componentAccessToken ?: Z::cache()->get($cacheKey);
         if ($cache === false || !$this->componentAccessToken) {
             $ticket = $this->getComponentTicket();
@@ -564,13 +564,16 @@ class Main
                 if ($result = $this->post(self::APIURL . '/cgi-bin/component/api_component_token', $data)) {
                     $this->log('获取开放平台AccessToken成功', $result);
                     $this->componentAccessToken = $result['component_access_token'];
-                    $expiresIn = $result['expires_in'] - 1800;
+                    $expiresIn                  = $result['expires_in'] - 1800;
                     Z::cache()->set($cacheKey, $this->componentAccessToken, $expiresIn);
                     Z::cache()->set($cacheKey . '_expiresIn', time() + $expiresIn, $expiresIn);
                 } else {
                     $this->errorLog('获取开放平台AccessToken失败', $this->getError(), $data);
                 }
-                $this->log('获取开放平台AccessToken:', $this->componentAccessToken, '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn'))
+                $this->log(
+                    '获取开放平台AccessToken:',
+                    $this->componentAccessToken,
+                    '过期时间' . date('Y-m-d H:i:s', Z::cache()->get($cacheKey . '_expiresIn'))
                 );
             } else {
                 $this->errorLog('Ticket不存在');
@@ -670,9 +673,9 @@ class Main
      */
     public function getComponentPreAuthCode()
     {
-        $data = ['component_appid' => $this->getComponentAppid()];
+        $data        = ['component_appid' => $this->getComponentAppid()];
         $PreAuthCode = '';
-        $result = $this->post(
+        $result      = $this->post(
             self::APIURL . '/cgi-bin/component/api_create_preauthcode?component_access_token=' . $this->getComponentAccessToken(),
             $data
         );
@@ -750,12 +753,12 @@ class Main
 
     public function reRequest()
     {
-        $result = false;
+        $result    = false;
         $backtrace = debug_backtrace();
         foreach ($backtrace as $k) {
             if (Z::arrayGet($k, 'class') === __CLASS__ && Z::arrayGet($k, 'function') === 'request') {
                 $args = $k['args'];
-                $url = Z::arrayGet($args, 0);
+                $url  = Z::arrayGet($args, 0);
                 $urls = parse_url($url);
                 if ($query = Z::arrayGet($urls, 'query', '')) {
                     parse_str($query, $query);
@@ -768,12 +771,12 @@ class Main
                     }
                     $query = '?' . http_build_query($query);
                 }
-                $port = Z::arrayGet($urls, 'port');
-                $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+                $port     = Z::arrayGet($urls, 'port');
+                $host     = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
                 $fragment = Z::arrayGet($urls, 'fragment');
-                $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
-                $args[0] = $url;
-                $result = call_user_func_array([$this, 'request'], $args);
+                $url      = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+                $args[0]  = $url;
+                $result   = call_user_func_array([$this, 'request'], $args);
                 break;
             }
         }
@@ -831,10 +834,10 @@ class Main
         if (!$this->getJsapiTicket()) {
             return false;
         }
-        (!$url) && $url = Z::host(true, true, true);
+        (!$url) && $url             = Z::host(true, true, true);
         (!$timestamp) && $timestamp = time();
-        (!$noncestr) && $noncestr = $this->generateNonceStr();
-        $ret = strpos($url, '#');
+        (!$noncestr) && $noncestr   = $this->generateNonceStr();
+        $ret                        = strpos($url, '#');
         if ($ret) {
             $url = substr($url, 0, $ret);
         }
@@ -862,7 +865,7 @@ class Main
                     $paramstring .= "&" . $key . "=" . $value;
                 }
             }
-            $Sign = sha1($paramstring);
+            $Sign        = sha1($paramstring);
             $signPackage = [
                 "appid"     => $this->getAppid(),
                 "nonceStr"  => $noncestr,
@@ -890,7 +893,7 @@ class Main
                     return false;
                 }
                 $jsapiTicket = $res['ticket'];
-                $expire = $res['expires_in'] ? intval($res['expires_in']) - 1800 : 3600;
+                $expire      = $res['expires_in'] ? intval($res['expires_in']) - 1800 : 3600;
                 Z::cache()->set($cacheKey, $jsapiTicket, $expire);
             }
             $this->setJsapiTicket($jsapiTicket);
@@ -919,7 +922,7 @@ class Main
     public function generateNonceStr($length = 16)
     {
         $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        $str = "";
+        $str   = "";
         for ($i = 0; $i < $length; $i++) {
             $str .= $chars[mt_rand(0, strlen($chars) - 1)];
         }
@@ -988,7 +991,7 @@ class Main
     {
         if (!$this->authAccessToken) {
             $authCode = $this->authCode(null, '');
-            $result = $this->instance()->getAuthAccessToken($authCode);
+            $result   = $this->instance()->getAuthAccessToken($authCode);
             if (!$result) {
                 if ($this->errorCode == '41008' || $this->errorCode == '40029' || $this->errorCode == '40163') {
                     $this->authCode(null, $authCode);
@@ -997,8 +1000,8 @@ class Main
                 return false;
             }
             $this->authAccessToken = $result;
-            $this->openid = Z::arrayGet($result, 'openid', Z::arrayGet($result, 'OpenId'));
-            $this->userid = Z::arrayGet($result, 'UserId', Z::arrayGet($result, 'userid'));
+            $this->openid          = Z::arrayGet($result, 'openid', Z::arrayGet($result, 'OpenId'));
+            $this->userid          = Z::arrayGet($result, 'UserId', Z::arrayGet($result, 'userid'));
         }
 
         return $this->authAccessToken;
@@ -1024,10 +1027,10 @@ class Main
             unset($query['code'], $query['state'], $query['scope']);
             $query = '?' . http_build_query($query);
         }
-        $port = Z::arrayGet($urls, 'port');
-        $host = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
+        $port     = Z::arrayGet($urls, 'port');
+        $host     = Z::arrayGet($urls, 'host') . ($port ? ':' . $port : '');
         $fragment = Z::arrayGet($urls, 'fragment');
-        $url = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
+        $url      = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
         Z::redirect($this->getOauthRedirect($url, $this->getAuthState(), $this->getAuthScope()));
 
         return false;
@@ -1130,9 +1133,9 @@ class Main
 
             return Z::safePath($filepath, '');
         }
-        $result = @json_decode($this->getHttp()->data(), true);
+        $result    = @json_decode($this->getHttp()->data(), true);
         $errorCode = Z::arrayGet($result, 'errcode', 404);
-        $errorMsg = Z::arrayGet($result, 'errmsg', '文件名获取失败');
+        $errorMsg  = Z::arrayGet($result, 'errmsg', '文件名获取失败');
         $this->setError($errorCode, $errorMsg);
         $this->errorLog('多媒体下载失败', $result);
 
@@ -1142,9 +1145,9 @@ class Main
     public function valid()
     {
         if ($echoStr = Z::get('echostr')) {
-            $signature = Z::get('signature', '');
-            $timestamp = Z::get('timestamp', '');
-            $nonce = Z::get('nonce', '');
+            $signature     = Z::get('signature', '');
+            $timestamp     = Z::get('timestamp', '');
+            $nonce         = Z::get('nonce', '');
             $msg_signature = Z::get('msg_signature', '');
             $this->errorLog(Z::get(), $msg_signature);
             if ($msg_signature) {
@@ -1187,8 +1190,8 @@ class Main
                 $this->push();
             }
             $this->log('收到消息', $getRev, $getRevXml);
-            $type = $getRev['MsgType'];
-            $typeAll = $this->getUniqueKey() . '_event_all';
+            $type     = $getRev['MsgType'];
+            $typeAll  = $this->getUniqueKey() . '_event_all';
             $taskName = $this->getUniqueKey() . '_event_' . $type;
             if (Z::di()->has($taskName)) {
                 Z::di()->makeShared($taskName, [$this, $getRev, $type, $getRevXml]);
@@ -1207,15 +1210,15 @@ class Main
             $postStr = Z::postRaw();
             if (!empty($postStr)) {
                 $this->_receive = (is_array($postStr)) ?
-                    $postStr : $this->FromXml($postStr);
+                $postStr : $this->FromXml($postStr);
                 if (isset($this->_receive['Encrypt']) && (!isset($this->_receive['MsgType']))) {
-                    $this->_encrypt = true;
-                    $msg = '';
-                    $this->_signature = Z::get('signature');
-                    $this->_timestamp = Z::get('timestamp');
-                    $this->_nonce = Z::get('nonce');
+                    $this->_encrypt       = true;
+                    $msg                  = '';
+                    $this->_signature     = Z::get('signature');
+                    $this->_timestamp     = Z::get('timestamp');
+                    $this->_nonce         = Z::get('nonce');
                     $this->_msg_signature = Z::get('msg_signature');
-                    $errCode = $this->getCrypt()->decryptMsg(
+                    $errCode              = $this->getCrypt()->decryptMsg(
                         $this->_msg_signature,
                         $this->_timestamp,
                         $this->_nonce,
@@ -1224,7 +1227,7 @@ class Main
                     );
                     if ($errCode === 0) {
                         $this->_receiveXml = $msg;
-                        $this->_receive = $this->FromXml($msg);
+                        $this->_receive    = $this->FromXml($msg);
                     } else {
                         $this->errorLog(
                             '消息解密失败:' . $errCode,
@@ -1244,15 +1247,14 @@ class Main
 
     protected function FromXml($msg)
     {
-        try {
-            return (array)simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
-        } catch (\Exception $e) {
-            $err = $e->getMessage();
-            $this->errorLog('simplexmlLoad解析失败', $err, $msg);
-            Z::throwIf(true, 'Exception', $err);
+        $xml = @simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if (!$xml) {
+            $error = error_get_last() ?: ['message' => 'simplexmlLoad解析失败'];
+            $this->errorLog('simplexmlLoad解析失败', $error, $msg);
+            $msg = preg_replace('/[\x00-\x1F\x7F-\x9F]/u', '', $msg);
+            $xml = simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
         }
-
-        return false;
+        return (array) $xml;
     }
 
     /**
@@ -1282,11 +1284,11 @@ class Main
             @ob_clean();
             $result = 'success';
         } else {
-            $data = func_get_args();
-            $type = array_shift($data);
+            $data         = func_get_args();
+            $type         = array_shift($data);
             list($getRev) = $this->getRev();
-            $data = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
-            $result = $this->getUtil()->getXml($type, $data);
+            $data         = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
+            $result       = $this->getUtil()->getXml($type, $data);
             if ($this->_encrypt === true) {
                 $this->getCrypt()->encryptMsg($result, $this->_timestamp, $this->_nonce, $result);
             }
@@ -1306,9 +1308,9 @@ class Main
         $this->log('收到开放平台推送事件', $ticket);
         if ($infoType = Z::arrayGet($ticket, 'InfoType')) {
             switch ($infoType) {
-                case 'component_verify_ticket':
-                    $this->setComponentTicket($ticket);
-                    break;
+            case 'component_verify_ticket':
+                $this->setComponentTicket($ticket);
+                break;
             }
             if ($closure instanceof \Closure) {
                 $closure($ticket, $infoType);
