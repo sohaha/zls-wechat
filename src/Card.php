@@ -1,7 +1,5 @@
 <?php
-
 namespace Zls\WeChat;
-
 /**
  * WeChat
  * @author      影浅-Seekwe
@@ -10,12 +8,9 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
-
 class Card implements WxInterface
 {
-    /** @var  Main $WX */
     private static $WX;
-
     /**
      * Zls_WeChat_Pay constructor.
      * @param $wx
@@ -24,7 +19,6 @@ class Card implements WxInterface
     {
         self::$WX = $wx;
     }
-
     /**
      * 卡券签名
      * @param        $cardId
@@ -47,10 +41,8 @@ class Card implements WxInterface
         //$data['fixed_begintimestamp'] = $fixedBegintimestamp;
         $signature = $this->getCardSign($data, 'sha1');
         $data['signature'] = $signature;
-
         return $data;
     }
-
     /**
      * @return mixed
      * @throws \Zls_Exception_500
@@ -67,10 +59,8 @@ class Card implements WxInterface
                 self::$WX->log('获取api_ticket失败', self::$WX->getError());
             }
         }
-
         return $access_token;
     }
-
     /**
      * 卡券签名cardSign
      * @param        $card
@@ -84,7 +74,6 @@ class Card implements WxInterface
         if (!$sign) {
             return false;
         }
-
         return $sign;
     }
 }

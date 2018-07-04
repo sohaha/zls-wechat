@@ -1,7 +1,5 @@
 <?php
-
 namespace Zls\WeChat;
-
 /**
  * WeChat
  * @author      影浅-Seekwe
@@ -10,14 +8,11 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
-
 class Qr implements WxInterface
 {
-    /** @var  Main $WX */
     private static $WX;
     private $ticket;
     private $qrPath;
-
     /**
      * Zls_WeChat_Pay constructor.
      * @param $wx
@@ -26,7 +21,6 @@ class Qr implements WxInterface
     {
         self::$WX = $wx;
     }
-
     /**
      * 创建临时二维码
      * @param int   $sceneId       32位非0整型
@@ -39,7 +33,6 @@ class Qr implements WxInterface
     {
         if (strlen($sceneId) > 32) {
             self::$WX->setError(201, '临时二维码场景值ID长度不能超过32位非0整型');
-
             return false;
         }
         $actionInfo = array_merge($actionInfo, ['scene' => ['scene_id' => $sceneId]]);
@@ -49,16 +42,13 @@ class Qr implements WxInterface
         if ($result) {
             return $result;
         }
-
         return false;
     }
-
     private function setQrInof($result)
     {
         $this->ticket = z::arrayGet($result, 'ticket');
         $this->qrPath = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=' . $this->ticket;
     }
-
     /**
      * 二维码插入logo
      * @param        $logoPath
@@ -104,7 +94,6 @@ class Qr implements WxInterface
             $fontSize = $qrWidth / 25;
             if ($fontPath) {
                 $fontPath = z::realPath($fontPath);
-                //todo 字体定位要优化
                 $box = imagettfbbox($fontSize, 0, $fontPath, $text);
                 $height = $box[3] - $box[5];
                 $width = $box[4] - $box[6];
@@ -121,18 +110,15 @@ class Qr implements WxInterface
         if ($save) {
             imagepng($QR, $filePath);
             imagedestroy($QR);
-
             return z::safePath($filePath, '');
         } else {
             header("Content-type: image/png");
             imagepng($QR);
             imagedestroy($QR);
             z::finish();
-
             return true;
         }
     }
-
     /**
      * 创建永久二维码
      * @param int|string $sceneId 最大值为100000（目前参数只支持1--100000）,字符串类型，长度限制为1到64，
@@ -155,10 +141,8 @@ class Qr implements WxInterface
         if ($result) {
             return $result;
         }
-
         return false;
     }
-
     /**
      * 获取二维码路径
      * @param string $saveLocal 保存到本地的目录
@@ -168,7 +152,6 @@ class Qr implements WxInterface
     {
         if (!$this->qrPath) {
             self::$WX->setError(404, '还没生成二维码,无法获取二维码链接');
-
             return false;
         }
         $qrUrl = $this->qrPath;
@@ -179,12 +162,10 @@ class Qr implements WxInterface
                 $qrUrl = z::safePath($filePath, '');
             } else {
                 self::$WX->setError(404, '二维码保存失败');
-
                 return false;
             }
         }
         $this->qrPath = $qrUrl;
-
         return $qrUrl;
     }
 }

@@ -3,7 +3,6 @@
  * 微信开发配置
  */
 $ini = z::config('ini.wechat');
-
 return [
     'appid'              => z::arrayGet($ini, 'appid', ''),
     'appsecret'          => z::arrayGet($ini, 'appsecret', ''),

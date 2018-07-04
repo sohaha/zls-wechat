@@ -1,12 +1,9 @@
 <?php
-
 namespace Zls\WeChat;
-
 /**
  * 对公众平台发送给公众账号的消息加解密
  */
 use Z;
-
 class Crypt
 {
     public static $OK = 0;
@@ -26,7 +23,6 @@ class Crypt
     private $token;
     private $encodingAesKey;
     private $appId;
-
     /**
      * @param $token          string 公众平台上，开发者设置的token
      * @param $encodingAesKey string 公众平台上，开发者设置的EncodingAESKey
@@ -38,7 +34,6 @@ class Crypt
         $this->encodingAesKey = $encodingAesKey;
         $this->appId = $appId;
     }
-
     /**
      * @param mixed $token
      */
@@ -46,7 +41,6 @@ class Crypt
     {
         $this->token = $token;
     }
-
     /**
      * @param mixed $encodingAesKey
      */
@@ -54,7 +48,6 @@ class Crypt
     {
         $this->encodingAesKey = $encodingAesKey;
     }
-
     /**
      * @param mixed $appId
      */
@@ -62,7 +55,6 @@ class Crypt
     {
         $this->appId = $appId;
     }
-
     /**
      * 将公众平台回复用户的消息加密打包.
      * <ol>
@@ -98,15 +90,12 @@ class Crypt
         $signature = $array[1];
         //生成发送的xml
         $encryptMsg = $this->generate($encrypt, $signature, $timeStamp, $nonce);
-
         return self::$OK;
     }
-
     public function Prpcrypt($k)
     {
         $this->key = base64_decode($k . "=");
     }
-
     /**
      * 对明文进行加密
      * @param string $text 需要加密的明文
@@ -135,14 +124,11 @@ class Crypt
                 \mcrypt_module_close($module);
                 $encrypted = base64_encode($encrypted);
             }
-
             return [self::$OK, $encrypted];
         } catch (\Exception $e) {
-            //print $e;
             return [self::$EncryptAESError, null];
         }
     }
-
     /**
      * 随机生成16位字符串
      * @return string 生成的字符串
@@ -155,10 +141,8 @@ class Crypt
         for ($i = 0; $i < 16; $i++) {
             $str .= $str_pol[mt_rand(0, $max)];
         }
-
         return $str;
     }
-
     /**
      * 对需要加密的明文进行填充补位
      * @param string $text 需要进行填充补位操作的明文
@@ -179,10 +163,8 @@ class Crypt
         for ($index = 0; $index < $amount_to_pad; $index++) {
             $tmp .= $pad_chr;
         }
-
         return $text . $tmp;
     }
-
     public function getSHA1($token, $timestamp, $nonce, $encrypt_msg)
     {
         //排序
@@ -190,14 +172,11 @@ class Crypt
             $array = [$encrypt_msg, $token, $timestamp, $nonce];
             sort($array, SORT_STRING);
             $str = implode($array);
-
             return [self::$OK, sha1($str)];
         } catch (\Exception $e) {
-            //print $e . "\n";
             return [self::$ComputeSignatureError, null];
         }
     }
-
     /**
      * 生成xml消息
      * @param string $encrypt   加密后的消息密文
@@ -215,10 +194,8 @@ class Crypt
 <TimeStamp>%s</TimeStamp>
 <Nonce><![CDATA[%s]]></Nonce>
 </xml>';
-
         return sprintf($format, $encrypt, $signature, $timestamp, $nonce);
     }
-
     /**
      * 企业号验证URL
      * @param $token
@@ -246,10 +223,8 @@ class Crypt
             return $result[0];
         }
         $replyEchoStr = $result[1];
-
         return self::$OK;
     }
-
     /**
      * 对密文进行解密
      * @param string $encrypted 需要解密的密文
@@ -292,10 +267,8 @@ class Crypt
         if ($from_appid != $appid) {
             return [self::$ValidateAppidError, null];
         }
-
         return [0, $xml_content];
     }
-
     /**
      * 对解密后的明文进行补位删除
      * @param string $text 解密后的明文
@@ -307,10 +280,8 @@ class Crypt
         if ($pad < 1 || $pad > 32) {
             $pad = 0;
         }
-
         return substr($text, 0, (strlen($text) - $pad));
     }
-
     /**
      * 签名数据
      * @param $array
@@ -330,10 +301,8 @@ class Crypt
         if (z::get('test')) {
             z::dump($array, $str);
         }
-
         return $signType($str);
     }
-
     /**
      * 检验消息的真实性，并且获取解密后的明文.
      * @param $msgSignature string 签名串，对应URL参数的msg_signature
@@ -375,10 +344,8 @@ class Crypt
             return $result[0];
         }
         $msg = $result[1];
-
         return self::$OK;
     }
-
     /**
      * 提取出xml数据包中的加密消息
      * @param string $xmltext 待提取的xml字符串
@@ -393,13 +360,11 @@ class Crypt
             $array_a = $xml->getElementsByTagName('ToUserName');
             $encrypt = $array_e->item(0)->nodeValue;
             $tousername = $array_a->item(0)->nodeValue;
-
             return [0, $encrypt, $tousername];
         } catch (\Exception $e) {
             return [self::$ParseXmlError, null, null];
         }
     }
-
     /**
      * 解密xml包
      * @param $postStr
@@ -419,7 +384,6 @@ class Crypt
             $AppId = $array_e->item(0)->nodeValue;
             $Encrypt = $array_s->item(0)->nodeValue;
             $msg = $this->decrypt($Encrypt, $AppId);
-
             return (array)simplexml_load_string(
                 array_pop($msg),
                 'SimpleXMLElement',

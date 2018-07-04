@@ -1,9 +1,6 @@
 <?php
-
 namespace Zls\WeChat;
-
 use Z;
-
 /**
  * 小程序
  * @author        影浅
@@ -17,19 +14,15 @@ class App implements WxInterface
 {
     private $wx;
     private $sessionKey;
-
     public function __construct(Main $wx)
     {
         $this->wx = &$wx;
     }
-
     public function setSessionKey($sessionKey)
     {
         $this->sessionKey = $sessionKey;
-
         return $this;
     }
-
     /**
      * 获取SessionKey
      * @param        $code
@@ -47,14 +40,12 @@ class App implements WxInterface
         if (!$secret) {
             $secret = $wx->getAppsecret();
         }
-
         return z::tap($wx->get($wx::APIURL . '/sns/jscode2session?appid=' . $appid . '&secret=' . $secret . '&js_code=' . $code . '&grant_type=' . $grantType), function ($res) {
             if (!!$res) {
                 $this->sessionKey = z::arrayGet($res, 'session_key');
             }
         });
     }
-
     /**
      * 验证数据合法
      * @param $rawData
@@ -64,10 +55,8 @@ class App implements WxInterface
     public function verify($rawData, $signature)
     {
         $_signature = sha1($rawData . $this->sessionKey);
-
         return $_signature === $signature;
     }
-
     /**
      * 解密用户信息
      * @param        $iv
@@ -82,13 +71,11 @@ class App implements WxInterface
         }
         if (strlen($this->sessionKey) != 24) {
             $this->wx->setError(-41001, 'sessionKey无效');
-
             return false;
         }
         $aesKey = base64_decode($this->sessionKey);
         if (strlen($iv) != 24) {
             $this->wx->setError(-41002, 'iv数据无效');
-
             return false;
         }
         $aesIV = base64_decode($iv);
@@ -96,15 +83,12 @@ class App implements WxInterface
         $result = openssl_decrypt($aesCipher, "AES-128-CBC", $aesKey, 1, $aesIV);
         if (!$data = json_decode($result, true)) {
             $this->wx->setError(-41004, '数据解密失败');
-
             return false;
         }
         if (z::arrayGet($data, 'watermark.appid') !== $appid) {
             $this->wx->setError(-41003, 'AppId不匹配');
-
             return false;
         }
-
         return $data;
     }
 }

@@ -1,9 +1,6 @@
 <?php
-
 namespace Zls\WeChat;
-
 use Z;
-
 /**
  * WeChat
  * @package       ZlsPHP-WeChat
@@ -57,14 +54,12 @@ class Main
     private $agentid;
     private $reAccessToken;
     private $reply = true;
-
     public function __construct()
     {
         if (Z::config()->find('wechat')) {
             $this->init(Z::config('wechat'));
         }
     }
-
     /**
      * @param array $data [appid,appsecret,encoding_aes_key,component_appid,component_appsecret]
      */
@@ -83,28 +78,22 @@ class Main
         $this->agentid            = Z::arrayGet($data, 'agentid');
         $this->reAccessToken      = Z::arrayGet($data, 'reAccessToken', 1);
         $this->setUniqueKey();
-        /** @var Util $util */
         $util          = $this->getUtil();
         self::$errCode = $util->errCode;
     }
-
     /**
      * WeChatUtil
      * @return Util
      */
     public function getUtil()
     {
-        /** @var Util $class */
         $class = Z::extension('WeChat_Util');
-
         return $class;
     }
-
     public function __destruct()
     {
         $this->clear();
     }
-
     /**
      * 清除赋值/模拟销毁
      */
@@ -117,15 +106,12 @@ class Main
         $this->componentAuthorizerAccessToken = null;
         $this->openid                         = null;
     }
-
     public function __call($name, $value)
     {
         $className = 'Zls_WeChat_' . str_replace('get', '', $name);
         $class     = Z::factory($className, true, null, [$this]);
-
         return $class;
     }
-
     /**
      * 设置是否开启记录日志
      * @param boolean $debug
@@ -134,10 +120,8 @@ class Main
     public function setDebug($debug)
     {
         $this->debug = $debug;
-
         return $this;
     }
-
     /**
      * 进行开放平台授权
      * @param string $redirect_uri 回调地址 默认当前页面
@@ -166,11 +150,9 @@ class Main
         } else {
             $url = 'https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=' . $this->getComponentAppid() . '&pre_auth_code=' . $this->getComponentPreAuthCode() . '&redirect_uri=' . $redirect_uri;
             Z::redirect($url);
-
             return false;
         }
     }
-
     /**
      * 获取开放平台接口调用凭据和授权信息
      * @param $authorization_code
@@ -191,10 +173,8 @@ class Main
         } else {
             $this->errorLog('获取开放平台接口调用凭据和授权信息失败', $this->getError(), $data);
         }
-
         return $result;
     }
-
     /**
      * @return mixed
      */
@@ -202,7 +182,6 @@ class Main
     {
         return $this->componentAppid;
     }
-
     /**
      * @param mixed $componentAppid
      */
@@ -210,7 +189,6 @@ class Main
     {
         $this->componentAppid = $componentAppid;
     }
-
     /**
      * POST请求
      * @param      $url
@@ -222,7 +200,6 @@ class Main
     {
         return $this->request($url, $data, 'post', 'json', 'json', $atUpload);
     }
-
     public function request($url, $data = null, $type = 'get', $dataType = 'json', $responseType = 'json', $atUpload = false)
     {
         if ($dataType === 'json' && is_array($data)) {
@@ -237,10 +214,8 @@ class Main
                 return $this->setError($errcode, $this->getErrText($result));
             }
         }
-
         return $result;
     }
-
     /**
      * @return object \Zls\Action\Http
      */
@@ -248,7 +223,6 @@ class Main
     {
         return Z::extension('Action_Http');
     }
-
     /**
      * 打印日志
      * @param $_
@@ -260,7 +234,6 @@ class Main
             $this->output();
         }
     }
-
     protected function output()
     {
         $trace = Z::arrayGet(debug_backtrace(), 1);
@@ -278,7 +251,6 @@ class Main
         }
         Z::log($data, 'wx');
     }
-
     public function setError($errorCode, $errorMsg, $force = false)
     {
         $result = false;
@@ -286,7 +258,6 @@ class Main
         case 42001: //令牌过期
             break;
         case 40001: //accessToken无效
-            //case 40125:
             $this->errorLog('缓存没过期，但是accessToken失效了:' . $this->reAccessToken);
             if (!!$this->reAccessToken) {
                 $this->reAccessToken = ((int) $this->reAccessToken) - 1;
@@ -301,10 +272,8 @@ class Main
             $this->errorCode = $errorCode;
             $this->errorMsg  = $errorMsg;
         }
-
         return $result;
     }
-
     /**
      * @param $_
      */
@@ -312,7 +281,6 @@ class Main
     {
         $this->output();
     }
-
     /**
      * 获取AccessToken
      * @param bool $cache
@@ -342,10 +310,8 @@ class Main
             //存在开放平台APPID则强行把AccessToken返回ComponentAuthorizerAccessToken
             return $this->getComponentAuthorizerAccessToken();
         }
-
         return $this->accessToken;
     }
-
     /**
      * 设置AccessToken
      * @param string $access_token
@@ -354,10 +320,8 @@ class Main
     public function setAccessToken($access_token)
     {
         $this->accessToken = $access_token;
-
         return $this;
     }
-
     /**
      * @return mixed
      */
@@ -365,7 +329,6 @@ class Main
     {
         return $this->agentid;
     }
-
     /**
      * @param mixed $agentid
      */
@@ -373,7 +336,6 @@ class Main
     {
         $this->agentid = $agentid;
     }
-
     /**
      * @param string $key
      * @return mixed
@@ -382,7 +344,6 @@ class Main
     {
         return $this->uniqueKey . $key;
     }
-
     /**
      * 设置唯一Key
      * @param mixed $uniqueKey
@@ -394,10 +355,8 @@ class Main
             $uniqueKey = 'Zls_WeChat_' . ($this->getComponentAppid() ? $this->getComponentAppid() . md5($this->getComponentAppsecret()) : $this->getAppid() . md5($this->getAppsecret()));
         }
         $this->uniqueKey = $uniqueKey;
-
         return $this;
     }
-
     /**
      * @return Basi|Qy
      */
@@ -408,10 +367,8 @@ class Main
         } else {
             $instance = $this->getBasi();
         }
-
         return $instance;
     }
-
     /**
      * @param null $expiresIn
      * @return int|null
@@ -425,10 +382,8 @@ class Main
             $expiresIn = time() + $expiresIn;
             Z::cache()->set($cacheKey, $expiresIn);
         }
-
         return $expiresIn;
     }
-
     /**
      * @return mixed
      */
@@ -436,7 +391,6 @@ class Main
     {
         return $this->appid;
     }
-
     /**
      * 设置Appid
      * @param mixed $appid
@@ -450,10 +404,8 @@ class Main
         }
         $this->componentAuthorizerAccessToken = null;
         $this->accessToken                    = null;
-
         return $this;
     }
-
     /**
      * 获取开放平台AuthorizerAccessToken
      * @param string $appid
@@ -467,10 +419,8 @@ class Main
         if (!$this->componentAuthorizerAccessToken && (!$this->componentAuthorizerAccessToken = Z::cache()->get($this->getUniqueKey('_ComponentAuthorizerAccessToken_' . $appid)))) {
             $this->refreshComponentAuthorizerAccessToken();
         }
-
         return $this->componentAuthorizerAccessToken;
     }
-
     /**
      * 设置开放平台授权公众号AccessToken
      * @param mixed  $componentAuthorizerAccessToken
@@ -493,7 +443,6 @@ class Main
         }
         $this->componentAuthorizerAccessToken = $componentAuthorizerAccessToken;
     }
-
     /**
      * 刷新AuthorizerAccessToken
      * @param string $appid                  appid
@@ -513,7 +462,6 @@ class Main
             'authorizer_appid'         => $appid,
             'authorizer_refresh_token' => $authorizerRefreshToken,
         ];
-
         return $authorizerRefreshToken ? Z::tap($this->post(
             self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
             $data
@@ -529,7 +477,6 @@ class Main
             }
         }) : false;
     }
-
     /**
      * 获取刷新令牌
      * @param string $appid
@@ -540,10 +487,8 @@ class Main
         if (!$appid) {
             $appid = $this->getAppid();
         }
-
         return Z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
     }
-
     /**
      * 获取开放平台AccessToken
      * @param bool $cache
@@ -579,10 +524,8 @@ class Main
                 $this->errorLog('Ticket不存在');
             }
         }
-
         return $this->componentAccessToken;
     }
-
     /**
      * 设置开放平台AccessToken
      * @param mixed $componentAccessToken
@@ -594,7 +537,6 @@ class Main
         }
         $this->componentAccessToken = $componentAccessToken;
     }
-
     /**
      * 获取component_verify_ticket
      * @return mixed
@@ -603,7 +545,6 @@ class Main
     {
         return Z::cache()->get($this->getUniqueKey('_ComponentTicket'));
     }
-
     /**
      * @return mixed
      */
@@ -611,7 +552,6 @@ class Main
     {
         return $this->componentAppsecret;
     }
-
     /**
      * @param mixed $componentAppsecret
      */
@@ -619,17 +559,14 @@ class Main
     {
         $this->componentAppsecret = $componentAppsecret;
     }
-
     public function getError($clean = false)
     {
         $error = ['code' => $this->errorCode, 'msg' => $this->errorMsg];
         if ($clean === true) {
             $this->setError(-1, '', true);
         }
-
         return $error;
     }
-
     public function getCallbackRefreshComponent($appid, $resule)
     {
         $closure = $this->refreshComponentCallback;
@@ -637,7 +574,6 @@ class Main
             $closure($appid, $resule);
         }
     }
-
     /**
      * 设置刷新令牌
      * @param mixed  $componentRefreshToken
@@ -657,7 +593,6 @@ class Main
             );
         }
     }
-
     private function getErrText($err)
     {
         $code = Z::arrayGet($err, 'errcode', -1);
@@ -667,7 +602,6 @@ class Main
             return $code . ':' . $err['errmsg'];
         }
     }
-
     /**
      * 获取开放平台预授权码
      */
@@ -685,20 +619,16 @@ class Main
         } else {
             $this->errorLog('获取开放平台预授权码失败', $this->getError(), $data, $this->getComponentAccessToken());
         }
-
         return $PreAuthCode;
     }
-
     /**
      * @return Crypt
      */
     public function getCrypt()
     {
-        /**  @var Crypt $class */
         $class = Z::tap(
             Z::extension('WeChat_Crypt'),
             function ($class) {
-                /**  @var Crypt $class */
                 if ($this->getComponentAppid()) {
                     $class->msgCrypt($this->getComponentAppid(), $this->getEncodingAesKey(), $this->getToken());
                 } else {
@@ -706,10 +636,8 @@ class Main
                 }
             }
         );
-
         return $class;
     }
-
     /**
      * @return mixed
      */
@@ -717,7 +645,6 @@ class Main
     {
         return $this->encodingAesKey;
     }
-
     /**
      * @param mixed $encodingAesKey
      * @return Main
@@ -726,10 +653,8 @@ class Main
     {
         $this->encodingAesKey = $encodingAesKey;
         $this->getCrypt()->setEncodingAesKey($encodingAesKey);
-
         return $this;
     }
-
     /**
      * @return mixed
      */
@@ -737,7 +662,6 @@ class Main
     {
         return $this->token;
     }
-
     /**
      * 设置token
      * @param mixed $token
@@ -747,10 +671,8 @@ class Main
     {
         $this->token = $token;
         $this->getCrypt()->setToken($token);
-
         return $this;
     }
-
     public function reRequest()
     {
         $result    = false;
@@ -780,10 +702,8 @@ class Main
                 break;
             }
         }
-
         return $result;
     }
-
     /**
      * 请求上传文件
      * @param      $url
@@ -801,10 +721,8 @@ class Main
                 $data[$key] = '@' . $filename;
             }
         }
-
         return $this->post($url, $data, true);
     }
-
     /**
      * @param     $key
      * @param     $data
@@ -818,10 +736,8 @@ class Main
             $cacheData = $data();
             Z::cache()->set($key, $cacheData, $time);
         }
-
         return $cacheData;
     }
-
     /**
      * 微信js签名
      * @param string $url
@@ -875,10 +791,8 @@ class Main
             ];
             Z::cache()->set($cacheKey, $signPackage, 3600);
         }
-
         return $signPackage;
     }
-
     /**
      * 获取Ticket
      * @return bool|string
@@ -898,10 +812,8 @@ class Main
             }
             $this->setJsapiTicket($jsapiTicket);
         }
-
         return $jsapiTicket;
     }
-
     /**
      * 设置Ticket
      * @param mixed $jsapiTicket
@@ -910,10 +822,8 @@ class Main
     public function setJsapiTicket($jsapiTicket)
     {
         $this->jsapiTicket[$this->getAppid()] = $jsapiTicket;
-
         return $this;
     }
-
     /**
      * 生成随机字符串
      * @param int $length
@@ -926,10 +836,8 @@ class Main
         for ($i = 0; $i < $length; $i++) {
             $str .= $chars[mt_rand(0, strlen($chars) - 1)];
         }
-
         return $str;
     }
-
     /**
      * 设置刷新AuthorizerAccessToken回调
      * @param \Closure $closure
@@ -938,7 +846,6 @@ class Main
     {
         $this->refreshComponentCallback = $closure;
     }
-
     /**
      * 获取AccessToken过期时间戳
      */
@@ -946,7 +853,6 @@ class Main
     {
         return Z::cache()->get($this->getUniqueKey() . '_access_token_outTime');
     }
-
     /**
      * 获取用户详情
      * @param $openid
@@ -956,12 +862,10 @@ class Main
     {
         return $this->get(self::APIURL . '/cgi-bin/user/info?access_token=' . $this->getAccessToken() . '&openid=' . $openid . '&lang=zh_CN');
     }
-
     public function get($url, $data = null)
     {
         return $this->request($url, $data, 'get');
     }
-
     /**
      * 获取授权用户OPENID
      * @param string $type
@@ -980,10 +884,8 @@ class Main
             }
             $result = ['openid' => $this->openid, 'userid' => $this->userid];
         }
-
         return $result;
     }
-
     /**
      * @return array|bool
      */
@@ -996,17 +898,14 @@ class Main
                 if ($this->errorCode == '41008' || $this->errorCode == '40029' || $this->errorCode == '40163') {
                     $this->authCode(null, $authCode);
                 }
-
                 return false;
             }
             $this->authAccessToken = $result;
             $this->openid          = Z::arrayGet($result, 'openid', Z::arrayGet($result, 'OpenId'));
             $this->userid          = Z::arrayGet($result, 'UserId', Z::arrayGet($result, 'userid'));
         }
-
         return $this->authAccessToken;
     }
-
     /**
      * 获取授权 oauth_code
      * @param string $url
@@ -1032,10 +931,8 @@ class Main
         $fragment = Z::arrayGet($urls, 'fragment');
         $url      = Z::arrayGet($urls, 'scheme') . '://' . $host . Z::arrayGet($urls, 'path') . $query . ($fragment ? '#' . $fragment : '');
         Z::redirect($this->getOauthRedirect($url, $this->getAuthState(), $this->getAuthScope()));
-
         return false;
     }
-
     /**
      * 获取授权URl
      * @param        $callback
@@ -1046,10 +943,8 @@ class Main
     public function getOauthRedirect($callback = null, $state = '', $scope = 'snsapi_userinfo')
     {
         (!$callback) && $callback = Z::host(true, true, true);
-
         return $this->instance()->getOauthRedirect($callback, $state, $scope);
     }
-
     /**
      * @return string
      */
@@ -1057,7 +952,6 @@ class Main
     {
         return $this->authState;
     }
-
     /**
      * @param string $authState
      * @return Main
@@ -1065,10 +959,8 @@ class Main
     public function setAuthState($authState)
     {
         $this->authState = $authState;
-
         return $this;
     }
-
     /**
      * @return mixed
      */
@@ -1076,7 +968,6 @@ class Main
     {
         return $this->authScope;
     }
-
     /**
      * 设置页面授权方式
      * @param string $authScope snsapi_base|snsapi_userinfo
@@ -1085,10 +976,8 @@ class Main
     public function setAuthScope($authScope)
     {
         $this->authScope = $authScope;
-
         return $this;
     }
-
     /**
      * @return mixed
      */
@@ -1096,7 +985,6 @@ class Main
     {
         return $this->appsecret;
     }
-
     /**
      * @param mixed $appsecret
      * @return Main
@@ -1104,10 +992,8 @@ class Main
     public function setAppsecret($appsecret)
     {
         $this->appsecret = $appsecret;
-
         return $this;
     }
-
     /**
      * 获取授权用户详情
      * @param null $openid
@@ -1117,7 +1003,6 @@ class Main
     {
         return $this->instance()->getAuthUserInfo($openid);
     }
-
     /**
      * 下载多媒体
      * @param string $media_id 媒体ID
@@ -1130,7 +1015,6 @@ class Main
         if (preg_match('/filename="(.*)"/i', $this->getHttp()->header(), $filename)) {
             $filepath = $saveFile . '/' . $filename[1];
             file_put_contents($filepath, $this->getHttp()->data());
-
             return Z::safePath($filepath, '');
         }
         $result    = @json_decode($this->getHttp()->data(), true);
@@ -1138,10 +1022,8 @@ class Main
         $errorMsg  = Z::arrayGet($result, 'errmsg', '文件名获取失败');
         $this->setError($errorCode, $errorMsg);
         $this->errorLog('多媒体下载失败', $result);
-
         return false;
     }
-
     public function valid()
     {
         if ($echoStr = Z::get('echostr')) {
@@ -1163,7 +1045,6 @@ class Main
             }
         }
     }
-
     /**
      * @param $type
      * @param $fn
@@ -1177,10 +1058,8 @@ class Main
         foreach ($type as $item) {
             Z::di()->bind($this->getUniqueKey() . '_event_' . $item, $fn);
         }
-
         return $this;
     }
-
     public function run()
     {
         list($getRev, $getRevXml) = $this->getRev();
@@ -1203,7 +1082,6 @@ class Main
             Z::finish();
         }
     }
-
     private function getRev()
     {
         if (empty($this->_receive)) {
@@ -1241,10 +1119,8 @@ class Main
                 }
             }
         }
-
         return [$this->_receive, $this->_receiveXml];
     }
-
     protected function FromXml($msg)
     {
         $xml = @simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
@@ -1256,7 +1132,6 @@ class Main
         }
         return (array) $xml;
     }
-
     /**
      * @return bool
      */
@@ -1264,7 +1139,6 @@ class Main
     {
         return $this->reply;
     }
-
     /**
      * @param bool $reply
      */
@@ -1272,7 +1146,6 @@ class Main
     {
         $this->reply = $reply;
     }
-
     /**
      * 被动回复消息
      * @param string $_ 为空则不返回任何消息
@@ -1296,7 +1169,6 @@ class Main
         }
         Z::finish($result);
     }
-
     /**
      * 处理开放平台推送事件
      * @param \Closure $closure
@@ -1315,15 +1187,12 @@ class Main
             if ($closure instanceof \Closure) {
                 $closure($ticket, $infoType);
             }
-
             return $ticket;
         } else {
             $this->errorLog('解密开放平台推送事件失败', $ticket);
-
             return false;
         }
     }
-
     /**
      * 设置component_verify_ticket
      * @param $ticket
@@ -1335,7 +1204,6 @@ class Main
         //缓存一个礼拜
         Z::cache()->set($this->getUniqueKey('_ComponentTicket'), $ticket['ComponentVerifyTicket'], 604800);
     }
-
     /**
      * 获取错误信息详情
      * @param null $code
@@ -1346,7 +1214,6 @@ class Main
         if (is_null($code)) {
             return self::$errCode;
         }
-
         return Z::arrayGet(self::$errCode, $code, '未知错误');
     }
 }
