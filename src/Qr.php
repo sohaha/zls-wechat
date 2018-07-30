@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * WeChat
  * @author      影浅-Seekwe
@@ -8,11 +10,14 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
+
 class Qr implements WxInterface
 {
+    /** @var Main $WX */
     private static $WX;
     private $ticket;
     private $qrPath;
+
     /**
      * Zls_WeChat_Pay constructor.
      * @param $wx
@@ -21,34 +26,70 @@ class Qr implements WxInterface
     {
         self::$WX = $wx;
     }
+
     /**
      * 创建临时二维码
      * @param int   $sceneId       32位非0整型
      * @param int   $expireSeconds 该二维码有效时间，以秒为单位
      * @param array $actionInfo
      * @return array|bool
-     * @throws \Zls_Exception_500
      */
     public function createTemp($sceneId, $expireSeconds = 2592000, $actionInfo = [])
     {
-        if (strlen($sceneId) > 32) {
-            self::$WX->setError(201, '临时二维码场景值ID长度不能超过32位非0整型');
-            return false;
+
+        if ($generateActionInfo = $this->generateActionInfo($sceneId, true)) {
+            $data = ['action_name' => $generateActionInfo['actionName'], 'expire_seconds' => $expireSeconds, 'action_info' => array_merge($actionInfo, $generateActionInfo['actionInfo'])];
+
+            return $this->post($data);
         }
-        $actionInfo = array_merge($actionInfo, ['scene' => ['scene_id' => $sceneId]]);
-        $data = ['action_name' => 'QR_SCENE', 'expire_seconds' => $expireSeconds, 'action_info' => $actionInfo];
-        $result = self::$WX->post('https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=' . self::$WX->getAccessToken(), $data);
-        $this->setQrInof($result);
-        if ($result) {
-            return $result;
-        }
+
         return false;
     }
+
+    /**
+     * 生成二维码参数
+     * @param $sceneId
+     * @param $temporary
+     * @return bool|array ['actionInfo' => xxx, 'actionName' => xxx]
+     */
+    private function generateActionInfo($sceneId, $temporary)
+    {
+        $isStr = is_string($sceneId);
+        if ($isStr) {
+            if (mb_strlen($sceneId) > 64) {
+                self::$WX->setError(201, '二维码场景值ID长度不能超过64位字符串');
+
+                return false;
+            }
+            $actionInfo = ['scene' => ['scene_str' => $sceneId]];
+            $actionName = $temporary ? 'QR_SCENE' : 'QR_LIMIT_SCENE';
+        } else {
+            if (strlen($sceneId) > 32) {
+                self::$WX->setError(201, '二维码场景值ID长度不能超过32位非0整型');
+
+                return false;
+            }
+            $actionInfo = ['scene' => ['scene_id' => $sceneId]];
+            $actionName = $temporary ? 'QR_STR_SCENE' : 'QR_LIMIT_STR_SCENE';
+        }
+
+        return ['actionInfo' => $actionInfo, 'actionName' => $actionName];
+    }
+
+    private function post($data)
+    {
+        $result = self::$WX->post('https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=' . self::$WX->getAccessToken(), $data);
+        $this->setQrInof($result);
+
+        return $result;
+    }
+
     private function setQrInof($result)
     {
         $this->ticket = z::arrayGet($result, 'ticket');
         $this->qrPath = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=' . $this->ticket;
     }
+
     /**
      * 二维码插入logo
      * @param        $logoPath
@@ -94,6 +135,7 @@ class Qr implements WxInterface
             $fontSize = $qrWidth / 25;
             if ($fontPath) {
                 $fontPath = z::realPath($fontPath);
+                //todo 字体定位要优化
                 $box = imagettfbbox($fontSize, 0, $fontPath, $text);
                 $height = $box[3] - $box[5];
                 $width = $box[4] - $box[6];
@@ -110,15 +152,18 @@ class Qr implements WxInterface
         if ($save) {
             imagepng($QR, $filePath);
             imagedestroy($QR);
+
             return z::safePath($filePath, '');
         } else {
             header("Content-type: image/png");
             imagepng($QR);
             imagedestroy($QR);
             z::finish();
+
             return true;
         }
     }
+
     /**
      * 创建永久二维码
      * @param int|string $sceneId 最大值为100000（目前参数只支持1--100000）,字符串类型，长度限制为1到64，
@@ -127,22 +172,15 @@ class Qr implements WxInterface
      */
     public function create($sceneId, $actionInfo = [])
     {
-        if (is_string($sceneId)) {
-            $sceneType = 'scene_str';
-            $qrType = 'QR_LIMIT_STR_SCENE';
-        } else {
-            $sceneType = 'scene_id';
-            $qrType = 'QR_LIMIT_SCENE';
+        if ($generateActionInfo = $this->generateActionInfo($sceneId, true)) {
+            $data = ['action_name' => $generateActionInfo['actionName'], 'expire_seconds' => $expireSeconds, 'action_info' => array_merge($actionInfo, $generateActionInfo['actionInfo'])];
+
+            return $this->post($data);
         }
-        $actionInfo = array_merge($actionInfo, ['scene' => [$sceneType => $sceneId]]);
-        $data = ['action_name' => $qrType, 'action_info' => $actionInfo];
-        $result = self::$WX->post('https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=' . self::$WX->getAccessToken(), $data);
-        $this->setQrInof($result);
-        if ($result) {
-            return $result;
-        }
+
         return false;
     }
+
     /**
      * 获取二维码路径
      * @param string $saveLocal 保存到本地的目录
@@ -152,6 +190,7 @@ class Qr implements WxInterface
     {
         if (!$this->qrPath) {
             self::$WX->setError(404, '还没生成二维码,无法获取二维码链接');
+
             return false;
         }
         $qrUrl = $this->qrPath;
@@ -162,10 +201,12 @@ class Qr implements WxInterface
                 $qrUrl = z::safePath($filePath, '');
             } else {
                 self::$WX->setError(404, '二维码保存失败');
+
                 return false;
             }
         }
         $this->qrPath = $qrUrl;
+
         return $qrUrl;
     }
 }
