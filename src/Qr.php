@@ -62,7 +62,7 @@ class Qr implements WxInterface
                 return false;
             }
             $actionInfo = ['scene' => ['scene_str' => $sceneId]];
-            $actionName = $temporary ? 'QR_SCENE' : 'QR_LIMIT_SCENE';
+            $actionName = $temporary ? 'QR_STR_SCENE' : 'QR_LIMIT_STR_SCENE';
         } else {
             if (strlen($sceneId) > 32) {
                 self::$WX->setError(201, '二维码场景值ID长度不能超过32位非0整型');
@@ -70,7 +70,7 @@ class Qr implements WxInterface
                 return false;
             }
             $actionInfo = ['scene' => ['scene_id' => $sceneId]];
-            $actionName = $temporary ? 'QR_STR_SCENE' : 'QR_LIMIT_STR_SCENE';
+            $actionName = $temporary ? 'QR_SCENE' : 'QR_LIMIT_SCENE';
         }
 
         return ['actionInfo' => $actionInfo, 'actionName' => $actionName];
