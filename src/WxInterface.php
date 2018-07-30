@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * Zls
  * @author        影浅

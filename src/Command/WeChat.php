@@ -1,17 +1,22 @@
 <?php
+
 namespace Zls\Wechat\Command;
+
 use Z;
+
 class WeChat extends \Zls\Command\Command
 {
     public function execute($args)
     {
         $this->init($args);
     }
+
     public function init($args)
     {
         $force = Z::arrayGet($args, ['-force', 'F']);
         $this->copy(z::realPath(__DIR__ . '/../Config/wechat.php', false, false), $force);
     }
+
     private function copy($origin, $force)
     {
         $config = Z::config();
@@ -47,13 +52,16 @@ class WeChat extends \Zls\Command\Command
             $this->printStrN('you can use -force to force the config file');
         }
     }
+
     public function options()
     {
         return ['--force, -F' => ' Overwrite old config file'];
     }
+
     public function example()
     {
     }
+
     /**
      * 命令介绍
      * @return string

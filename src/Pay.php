@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * WeChat
  * @author      影浅-Seekwe
@@ -8,19 +10,25 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
+
 class Pay implements WxInterface
 {
     const API_ORDERQUERY = 'https://api.mch.weixin.qq.com/pay/orderquery';
     const API_ORDERQUERY_QY = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/queryworkwxredpack';
+
     const API_SEND = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/sendredpack';
     const API_SEND_QY = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/sendworkwxredpack';
+
+    /** @var Main $WX */
     private static $WX;
+
     private static $CONFIG = [
         'mch_id'   => '',
         'key'      => '',
         'certPath' => '',
         'keyPath'  => '',
     ];
+
     /**
      * Zls_WeChat_Pay constructor.
      * @param $wx
@@ -29,6 +37,7 @@ class Pay implements WxInterface
     {
         self::$WX = $wx;
     }
+
     /**
      * 商户配置
      * @param array $config
@@ -37,6 +46,7 @@ class Pay implements WxInterface
     {
         self::$CONFIG = array_merge(self::$CONFIG, $config);
     }
+
     /**
      * 统一下单
      * @desc 拿到prepay_id
@@ -71,8 +81,10 @@ class Pay implements WxInterface
             $data = array_merge($data, $notify_url);
         }
         $data['sign'] = $this->sign($data, z::arrayGet($data, 'sign_type', 'MD5'));
+
         return $this->post('https://api.mch.weixin.qq.com/pay/unifiedorder', $data);
     }
+
     /**
      * 签名
      * @param array  $arrdata
@@ -93,8 +105,10 @@ class Pay implements WxInterface
         }
         $paramstring = $paramstring . '&key=' . self::$CONFIG['key'];
         $sign = ($signType === 'MD5') ? strtoupper(md5($paramstring)) : $paramstring;
+
         return $sign;
     }
+
     /**
      * 发起请求
      * @param $url
@@ -117,9 +131,11 @@ class Pay implements WxInterface
         } else {
             $errorMsg = z::arrayGet($result, 'err_code_des') ?: z::arrayGet($result, 'return_msg', '请求接口失败');
             self::$WX->setError(201, $errorMsg);
+
             return false;
         }
     }
+
     /**
      * 输出xml
      * @param $array
@@ -136,8 +152,10 @@ class Pay implements WxInterface
             }
         }
         $xml .= "</xml>";
+
         return $xml;
     }
+
     /**
      * 将xml转为array
      * @param string $xml
@@ -146,8 +164,10 @@ class Pay implements WxInterface
     private function FromXml($xml)
     {
         $data = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+
         return $data ? (array)$data : false;
     }
+
     /**
      * 查询订单
      * @param string $transactionId 微信订单号
@@ -159,6 +179,7 @@ class Pay implements WxInterface
     {
         if (!$outTradeNo && !$transactionId) {
             self::$WX->setError(-1, 'out_trade_no、transaction_id至少填一个！');
+
             return false;
         }
         $data = [
@@ -175,8 +196,10 @@ class Pay implements WxInterface
         }
         $data['sign'] = $this->sign($data, $signType);
         $api = !self::$WX->getAgentid() ? self::API_ORDERQUERY : self::API_ORDERQUERY_QY;
+
         return $this->post($api, $data);
     }
+
     /**
      * 关闭订单
      * @param string $outTradeNo 商户订单号
@@ -196,8 +219,10 @@ class Pay implements WxInterface
             $data['out_trade_no'] = $outTradeNo;
         }
         $data['sign'] = $this->sign($data, $signType);
+
         return $this->post('https://api.mch.weixin.qq.com/pay/closeorder', $data);
     }
+
     /**
      * 申请退款
      * @param int        $totalFee      订单总金额，单位为分，只能为整数
@@ -229,6 +254,7 @@ class Pay implements WxInterface
         }
         if (!$outTradeNo && !$transactionId) {
             self::$WX->setError(-1, 'out_trade_no、transaction_id至少填一个！');
+
             return false;
         }
         if ($outTradeNo) {
@@ -240,8 +266,10 @@ class Pay implements WxInterface
         $data['appid'] = self::$WX->getAppid();
         self::$WX->getHttp()->setSsl(self::$CONFIG['certPath'], self::$CONFIG['keyPath']);
         $data['sign'] = $this->sign($data, $data['sign_type']);
+
         return $this->post('https://api.mch.weixin.qq.com/secapi/pay/refund', $data);
     }
+
     /**
      * 查询退款
      * @param string|array $transactionId 微信订单号
@@ -279,8 +307,10 @@ class Pay implements WxInterface
         $data['mch_id'] = self::$CONFIG['mch_id'];
         $data['sign'] = $this->sign($data, $data['sign_type']);
         z::dump($data);
+
         return $this->post('https://api.mch.weixin.qq.com/pay/refundquery', $data);
     }
+
     /**
      * 支付结果通用通知
      * @param null|\Closure $callback
@@ -317,6 +347,8 @@ class Pay implements WxInterface
             z::finish($result);
         }
     }
+
+
     /**
      * 微信页面支付签名
      * @param string|array $prepay_id 预付ID|参数组
@@ -337,8 +369,10 @@ class Pay implements WxInterface
         $data['appId'] = self::$WX->getAppid();
         $sign = $this->sign($data, z::arrayGet($data, 'signType', 'MD5'));
         $data['paySign'] = $sign;
+
         return $data;
     }
+
     /**
      * 发送企业红包
      * //todo 开发中
@@ -381,8 +415,10 @@ class Pay implements WxInterface
             $data = array_merge($data, $more);
         }
         self::$WX->getHttp()->setSsl(self::$CONFIG['certPath'], self::$CONFIG['keyPath']);
+
         return $this->post(self::API_SEND_QY, $data);
     }
+
     /**
      * 发送红包
      * @param string $total_amount 付款金额
@@ -424,8 +460,10 @@ class Pay implements WxInterface
             $data = array_merge($data, $more);
         }
         self::$WX->getHttp()->setSsl(self::$CONFIG['certPath'], self::$CONFIG['keyPath']);
+
         return $this->post(self::API_SEND, $data);
     }
+
     /**
      * 发送裂变红包
      * @param string $total_amount 付款金额
@@ -461,8 +499,10 @@ class Pay implements WxInterface
         $data['wxappid'] = self::$WX->getAppid();
         $data['sign'] = $this->sign($data);
         self::$WX->getHttp()->setSsl(self::$CONFIG['certPath'], self::$CONFIG['keyPath']);
+
         return $this->post('https://api.mch.weixin.qq.com/mmpaymkttransfers/sendgroupredpack', $data);
     }
+
     /**
      * 获取红包详情
      * @param string $mch_billno 商户订单号
@@ -482,6 +522,7 @@ class Pay implements WxInterface
         $data['appid'] = self::$WX->getAppid();
         $data['sign'] = $this->sign($data);
         self::$WX->getHttp()->setSsl(self::$CONFIG['certPath'], self::$CONFIG['keyPath']);
+
         return $this->post('https://api.mch.weixin.qq.com/mmpaymkttransfers/gethbinfo', $data);
     }
 }

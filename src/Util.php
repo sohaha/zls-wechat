@@ -1,5 +1,7 @@
 <?php
+
 namespace Zls\WeChat;
+
 /**
  * 错误码
  * 暂时整理,以后用
@@ -9,6 +11,7 @@ namespace Zls\WeChat;
  *              Time:        20:27
  */
 use Z;
+
 class Util
 {
     public $errCode = [
@@ -140,6 +143,7 @@ class Util
         '7000035' => '获取股票信息失败',
         '7000036' => 'utf8 编码转换失败',
     ];
+
     public function checkSignature($token, $signature, $timestamp, $nonce)
     {
         $tmpArr = [$token, $timestamp, $nonce];
@@ -152,6 +156,7 @@ class Util
             return -1;
         }
     }
+
     public function getXml($type = 'text', $data)
     {
         switch ($type) {
@@ -179,8 +184,10 @@ class Util
             default:
                 $template = $this->textTemplate($data);
         }
+
         return vsprintf($template, $data);
     }
+
     public function textTemplate($data)
     {
         return vsprintf('<xml>
@@ -191,6 +198,7 @@ class Util
 <Content><![CDATA[%s]]></Content>
 </xml>', $data);
     }
+
     public function newsTemplate($data = [])
     {
         $list = array_pop($data);
@@ -211,8 +219,10 @@ class Util
         }
         $template .= '</Articles>
 </xml>';
+
         return $template;
     }
+
     public function imageTemplate($data)
     {
         return vsprintf('<xml>
@@ -225,6 +235,7 @@ class Util
 </Image>
 </xml>', $data);
     }
+
     public function videoTemplate($data)
     {
         return vsprintf('<xml>
@@ -239,6 +250,7 @@ class Util
 </Video>
 </xml>', $data);
     }
+
     public function musicTemplate($data)
     {
         return vsprintf('<xml>
@@ -255,6 +267,7 @@ class Util
 </Music>
 </xml>', $data);
     }
+
     public function voiceTemplate($data)
     {
         return vsprintf('<xml>
@@ -267,11 +280,13 @@ class Util
 </Voice>
 </xml>', $data);
     }
+
     public function transferKfTemplate($data)
     {
         if (!z::arrayKeyExists(2, $data)) {
             $data[2] = '';
         }
+
         return vsprintf('<xml>
 <ToUserName><![CDATA[%s]]></ToUserName>
 <FromUserName><![CDATA[%s]]></FromUserName>
@@ -282,6 +297,7 @@ class Util
 </TransInfo>
 </xml>', $data);
     }
+
     public function payTemplate($data)
     {
     }
