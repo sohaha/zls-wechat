@@ -2,7 +2,7 @@
 
 namespace Zls\WeChat;
 
-/**
+/*
  * 对公众平台发送给公众账号的消息加解密
  */
 use Z;
@@ -69,12 +69,14 @@ class Crypt
      *    <li>对要发送的消息进行AES-CBC加密</li>
      *    <li>生成安全签名</li>
      *    <li>将消息密文和安全签名打包成xml格式</li>
-     * </ol>
+     * </ol>.
+     *
      * @param $replyMsg     string 公众平台待回复用户的消息，xml格式的字符串
      * @param $timeStamp    string 时间戳，可以自己生成，也可以用URL参数的timestamp
      * @param $nonce        string 随机串，可以自己生成，也可以用URL参数的nonce
      * @param &$encryptMsg  string 加密后的可以直接回复用户的密文，包括msg_signature, timestamp, nonce, encrypt的xml格式的字符串,
      *                      当return返回0时有效
+     *
      * @return int 成功0，失败返回对应的错误码
      */
     public function encryptMsg($replyMsg, $timeStamp, $nonce, &$encryptMsg)
@@ -83,16 +85,16 @@ class Crypt
         //加密
         $array = $this->encrypt($replyMsg, $this->appId);
         $ret = $array[0];
-        if ($ret != 0) {
+        if (0 != $ret) {
             return $ret;
         }
-        if ($timeStamp == null) {
+        if (null == $timeStamp) {
             $timeStamp = time();
         }
         $encrypt = $array[1];
         $array = $this->getSHA1($this->token, $timeStamp, $nonce, $encrypt);
         $ret = $array[0];
-        if ($ret != 0) {
+        if (0 != $ret) {
             return $ret;
         }
         $signature = $array[1];
@@ -104,13 +106,15 @@ class Crypt
 
     public function Prpcrypt($k)
     {
-        $this->key = base64_decode($k . "=");
+        $this->key = base64_decode($k.'=');
     }
 
     /**
-     * 对明文进行加密
-     * @param string $text 需要加密的明文
+     * 对明文进行加密.
+     *
+     * @param string $text  需要加密的明文
      * @param        $appid
+     *
      * @return array 加密后的密文
      */
     public function encrypt($text, $appid)
@@ -118,7 +122,7 @@ class Crypt
         try {
             //获得16位随机字符串，填充到明文之前
             $random = $this->getRandomStr();
-            $text = $random . pack("N", strlen($text)) . $text . $appid;
+            $text = $random.pack('N', strlen($text)).$text.$appid;
             $iv = \substr($this->key, 0, 16);
             //使用自定义的填充方式对明文进行补位填充
             $text = $this->encode($text);
@@ -144,15 +148,16 @@ class Crypt
     }
 
     /**
-     * 随机生成16位字符串
+     * 随机生成16位字符串.
+     *
      * @return string 生成的字符串
      */
     public function getRandomStr()
     {
-        $str = "";
-        $str_pol = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
+        $str = '';
+        $str_pol = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
         $max = strlen($str_pol) - 1;
-        for ($i = 0; $i < 16; $i++) {
+        for ($i = 0; $i < 16; ++$i) {
             $str .= $str_pol[mt_rand(0, $max)];
         }
 
@@ -160,8 +165,10 @@ class Crypt
     }
 
     /**
-     * 对需要加密的明文进行填充补位
+     * 对需要加密的明文进行填充补位.
+     *
      * @param string $text 需要进行填充补位操作的明文
+     *
      * @return string 补齐明文字符串
      */
     public function encode($text)
@@ -170,17 +177,17 @@ class Crypt
         $text_length = strlen($text);
         //计算需要填充的位数
         $amount_to_pad = $block_size - ($text_length % $block_size);
-        if ($amount_to_pad == 0) {
+        if (0 == $amount_to_pad) {
             $amount_to_pad = $block_size;
         }
         //获得补位所用的字符
         $pad_chr = chr($amount_to_pad);
-        $tmp = "";
-        for ($index = 0; $index < $amount_to_pad; $index++) {
+        $tmp = '';
+        for ($index = 0; $index < $amount_to_pad; ++$index) {
             $tmp .= $pad_chr;
         }
 
-        return $text . $tmp;
+        return $text.$tmp;
     }
 
     public function getSHA1($token, $timestamp, $nonce, $encrypt_msg)
@@ -199,11 +206,13 @@ class Crypt
     }
 
     /**
-     * 生成xml消息
+     * 生成xml消息.
+     *
      * @param string $encrypt   加密后的消息密文
      * @param string $signature 安全签名
      * @param string $timestamp 时间戳
      * @param string $nonce     随机字符串
+     *
      * @return string
      */
     public function generate($encrypt, $signature, $timestamp, $nonce)
@@ -220,20 +229,22 @@ class Crypt
     }
 
     /**
-     * 企业号验证URL
+     * 企业号验证URL.
+     *
      * @param $token
      * @param $timestamp
      * @param $nonce
      * @param $echoStr
      * @param $msgSignature
      * @param $replyEchoStr
+     *
      * @return int|mixed
      */
     public function verifyUrl($token, $timestamp, $nonce, $echoStr, $msgSignature, &$replyEchoStr)
     {
         $array = $this->getSHA1($token, $timestamp, $nonce, $echoStr);
         $ret = $array[0];
-        if ($ret != 0) {
+        if (0 != $ret) {
             return $ret;
         }
         $signature = $array[1];
@@ -242,7 +253,7 @@ class Crypt
         }
         $this->Prpcrypt($this->encodingAesKey);
         $result = $this->decrypt($echoStr, $this->appId);
-        if ($result[0] != 0) {
+        if (0 != $result[0]) {
             return $result[0];
         }
         $replyEchoStr = $result[1];
@@ -251,9 +262,11 @@ class Crypt
     }
 
     /**
-     * 对密文进行解密
+     * 对密文进行解密.
+     *
      * @param string $encrypted 需要解密的密文
      * @param string $appid
+     *
      * @return array|string
      */
     public function decrypt($encrypted, $appid = null)
@@ -279,10 +292,10 @@ class Crypt
             $result = $this->decode($decrypted);
             //去除16位随机字符串,网络字节序和AppId
             if (strlen($result) < 16) {
-                return "";
+                return '';
             }
             $content = substr($result, 16, strlen($result));
-            $len_list = unpack("N", substr($content, 0, 4));
+            $len_list = unpack('N', substr($content, 0, 4));
             $xml_len = $len_list[1];
             $xml_content = substr($content, 4, $xml_len);
             $from_appid = substr($content, $xml_len + 4);
@@ -297,8 +310,10 @@ class Crypt
     }
 
     /**
-     * 对解密后的明文进行补位删除
+     * 对解密后的明文进行补位删除.
+     *
      * @param string $text 解密后的明文
+     *
      * @return string 删除填充补位后的明文
      */
     public function decode($text)
@@ -312,9 +327,11 @@ class Crypt
     }
 
     /**
-     * 签名数据
+     * 签名数据.
+     *
      * @param $array
      * @param $signType
+     *
      * @return string
      */
     public function signaData($array, $signType = 'md5')
@@ -336,26 +353,28 @@ class Crypt
 
     /**
      * 检验消息的真实性，并且获取解密后的明文.
+     *
      * @param $msgSignature string 签名串，对应URL参数的msg_signature
      * @param $timestamp    string 时间戳 对应URL参数的timestamp
      * @param $nonce        string 随机串，对应URL参数的nonce
      * @param $postData     string 密文，对应POST请求的数据
      * @param &$msg         string 解密后的原文，当return返回0时有效
+     *
      * @return int 成功0，失败返回对应的错误码
      */
     public function decryptMsg($msgSignature, $timestamp = null, $nonce, $postData, &$msg)
     {
-        if (strlen($this->encodingAesKey) != 43) {
+        if (43 != strlen($this->encodingAesKey)) {
             return self::$IllegalAesKey;
         }
         $this->Prpcrypt($this->encodingAesKey);
         //提取密文
         $array = $this->extract($postData);
         $ret = $array[0];
-        if ($ret != 0) {
+        if (0 != $ret) {
             return $ret;
         }
-        if ($timestamp == null) {
+        if (null == $timestamp) {
             $timestamp = time();
         }
         $encrypt = $array[1];
@@ -363,7 +382,7 @@ class Crypt
         //验证安全签名
         $array = $this->getSHA1($this->token, $timestamp, $nonce, $encrypt);
         $ret = $array[0];
-        if ($ret != 0) {
+        if (0 != $ret) {
             return $ret;
         }
         $signature = $array[1];
@@ -371,7 +390,7 @@ class Crypt
             return self::$ValidateSignatureError;
         }
         $result = $this->decrypt($encrypt, $this->appId);
-        if ($result[0] != 0) {
+        if (0 != $result[0]) {
             return $result[0];
         }
         $msg = $result[1];
@@ -380,8 +399,10 @@ class Crypt
     }
 
     /**
-     * 提取出xml数据包中的加密消息
+     * 提取出xml数据包中的加密消息.
+     *
      * @param string $xmltext 待提取的xml字符串
+     *
      * @return array 提取出的加密消息字符串
      */
     public function extract($xmltext)
@@ -401,9 +422,11 @@ class Crypt
     }
 
     /**
-     * 解密xml包
+     * 解密xml包.
+     *
      * @param $postStr
-     * @return array|boolean
+     *
+     * @return array|bool
      */
     public function extractDecrypt($postStr)
     {
@@ -420,7 +443,7 @@ class Crypt
             $Encrypt = $array_s->item(0)->nodeValue;
             $msg = $this->decrypt($Encrypt, $AppId);
 
-            return (array)simplexml_load_string(
+            return (array) simplexml_load_string(
                 array_pop($msg),
                 'SimpleXMLElement',
                 LIBXML_NOCDATA

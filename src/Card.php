@@ -2,7 +2,7 @@
 
 namespace Zls\WeChat;
 
-/**
+/*
  * WeChat
  * @author      影浅-Seekwe
  * @email       seekwe@gmail.com
@@ -13,11 +13,12 @@ use Z;
 
 class Card implements WxInterface
 {
-    /** @var  Main $WX */
+    /** @var Main $WX */
     private static $WX;
 
     /**
      * Zls_WeChat_Pay constructor.
+     *
      * @param $wx
      */
     public function __construct(Main $wx)
@@ -26,13 +27,16 @@ class Card implements WxInterface
     }
 
     /**
-     * 卡券签名
+     * 卡券签名.
+     *
      * @param        $cardId
      * @param string $openid
      * @param string $code
      * @param string $outerStr
      * @param string $fixedBegintimestamp
+     *
      * @return mixed
+     *
      * @throws \Zls_Exception_500
      */
     public function cardExt($cardId, $openid = '', $code = '', $outerStr = 'web', $fixedBegintimestamp = '')
@@ -53,14 +57,15 @@ class Card implements WxInterface
 
     /**
      * @return mixed
+     *
      * @throws \Zls_Exception_500
      */
     public function getAccessToken()
     {
         $appid = self::$WX->getAppid();
-        $cacheKey = 'WeChat_Card_AccessToken' . $appid;
+        $cacheKey = 'WeChat_Card_AccessToken'.$appid;
         if (!$access_token = z::cache()->get($cacheKey)) {
-            $request = self::$WX->get('https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' . self::$WX->getAccessToken() . '&type=wx_card');
+            $request = self::$WX->get('https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token='.self::$WX->getAccessToken().'&type=wx_card');
             if ($access_token = z::arrayGet($request, 'ticket')) {
                 z::cache()->set($cacheKey, $access_token, $request['expires_in'] - 100);
             } else {
@@ -72,9 +77,11 @@ class Card implements WxInterface
     }
 
     /**
-     * 卡券签名cardSign
+     * 卡券签名cardSign.
+     *
      * @param        $card
      * @param string $signType
+     *
      * @return bool
      */
     protected function getCardSign($card, $signType = 'sha1')

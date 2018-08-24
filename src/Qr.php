@@ -2,7 +2,7 @@
 
 namespace Zls\WeChat;
 
-/**
+/*
  * WeChat
  * @author      影浅-Seekwe
  * @email       seekwe@gmail.com
@@ -20,6 +20,7 @@ class Qr implements WxInterface
 
     /**
      * Zls_WeChat_Pay constructor.
+     *
      * @param $wx
      */
     public function __construct(Main $wx)
@@ -29,14 +30,15 @@ class Qr implements WxInterface
 
     /**
      * 创建临时二维码
+     *
      * @param int   $sceneId       32位非0整型
      * @param int   $expireSeconds 该二维码有效时间，以秒为单位
      * @param array $actionInfo
+     *
      * @return array|bool
      */
     public function createTemp($sceneId, $expireSeconds = 2592000, $actionInfo = [])
     {
-
         if ($generateActionInfo = $this->generateActionInfo($sceneId, true)) {
             $data = ['action_name' => $generateActionInfo['actionName'], 'expire_seconds' => $expireSeconds, 'action_info' => array_merge($actionInfo, $generateActionInfo['actionInfo'])];
 
@@ -47,9 +49,11 @@ class Qr implements WxInterface
     }
 
     /**
-     * 生成二维码参数
+     * 生成二维码参数.
+     *
      * @param $sceneId
      * @param $temporary
+     *
      * @return bool|array ['actionInfo' => xxx, 'actionName' => xxx]
      */
     private function generateActionInfo($sceneId, $temporary)
@@ -78,7 +82,7 @@ class Qr implements WxInterface
 
     private function post($data)
     {
-        $result = self::$WX->post('https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=' . self::$WX->getAccessToken(), $data);
+        $result = self::$WX->post('https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token='.self::$WX->getAccessToken(), $data);
         $this->setQrInof($result);
 
         return $result;
@@ -87,16 +91,18 @@ class Qr implements WxInterface
     private function setQrInof($result)
     {
         $this->ticket = z::arrayGet($result, 'ticket');
-        $this->qrPath = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=' . $this->ticket;
+        $this->qrPath = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket='.$this->ticket;
     }
 
     /**
-     * 二维码插入logo
+     * 二维码插入logo.
+     *
      * @param        $logoPath
      * @param        $savePath
      * @param bool   $save
      * @param string $filename
-     * @param string $qrPath 二维码访问路径
+     * @param string $qrPath   二维码访问路径
+     *
      * @return string|bool
      */
     public function compound($logoPath, $savePath, $save = true, $text = '', $fontPath = '', $filename = '', $qrPath = '')
@@ -147,15 +153,15 @@ class Qr implements WxInterface
                 imagestring($QR, 5, ($qrWidth - $textWidth) / 2, $qrHeight - $fontHeight, $text, $fontColor);
             }
         }
-        $fileName = $filename ?: md5($this->ticket) . '_logo.png';
-        $filePath = z::realPathMkdir($savePath, true) . $fileName;
+        $fileName = $filename ?: md5($this->ticket).'_logo.png';
+        $filePath = z::realPathMkdir($savePath, true).$fileName;
         if ($save) {
             imagepng($QR, $filePath);
             imagedestroy($QR);
 
             return z::safePath($filePath, '');
         } else {
-            header("Content-type: image/png");
+            header('Content-type: image/png');
             imagepng($QR);
             imagedestroy($QR);
             z::finish();
@@ -166,8 +172,10 @@ class Qr implements WxInterface
 
     /**
      * 创建永久二维码
-     * @param int|string $sceneId 最大值为100000（目前参数只支持1--100000）,字符串类型，长度限制为1到64，
+     *
+     * @param int|string $sceneId    最大值为100000（目前参数只支持1--100000）,字符串类型，长度限制为1到64，
      * @param array      $actionInfo
+     *
      * @return array|bool
      */
     public function create($sceneId, $actionInfo = [])
@@ -182,8 +190,10 @@ class Qr implements WxInterface
     }
 
     /**
-     * 获取二维码路径
+     * 获取二维码路径.
+     *
      * @param string $saveLocal 保存到本地的目录
+     *
      * @return bool|string
      */
     public function download($saveLocal = '')
@@ -196,8 +206,8 @@ class Qr implements WxInterface
         $qrUrl = $this->qrPath;
         if ($saveLocal) {
             $fileData = self::$WX->request($qrUrl, [], 'get', 'file');
-            $filePath = z::realPathMkdir($saveLocal, true) . md5($this->ticket) . '.png';
-            if (!!$fileData && file_put_contents($filePath, $fileData)) {
+            $filePath = z::realPathMkdir($saveLocal, true).md5($this->ticket).'.png';
+            if ((bool) $fileData && file_put_contents($filePath, $fileData)) {
                 $qrUrl = z::safePath($filePath, '');
             } else {
                 self::$WX->setError(404, '二维码保存失败');

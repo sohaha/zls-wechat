@@ -2,7 +2,7 @@
 
 namespace Zls\WeChat;
 
-/**
+/*
  * WeChat
  * @author      影浅-Seekwe
  * @email       seekwe@gmail.com
@@ -23,14 +23,15 @@ class Pay implements WxInterface
     private static $WX;
 
     private static $CONFIG = [
-        'mch_id'   => '',
-        'key'      => '',
+        'mch_id' => '',
+        'key' => '',
         'certPath' => '',
-        'keyPath'  => '',
+        'keyPath' => '',
     ];
 
     /**
      * Zls_WeChat_Pay constructor.
+     *
      * @param $wx
      */
     public function __construct(Main $wx)
@@ -39,7 +40,8 @@ class Pay implements WxInterface
     }
 
     /**
-     * 商户配置
+     * 商户配置.
+     *
      * @param array $config
      */
     public function init(array $config = [])
@@ -48,31 +50,34 @@ class Pay implements WxInterface
     }
 
     /**
-     * 统一下单
+     * 统一下单.
+     *
      * @desc 拿到prepay_id
+     *
      * @param string|array $notify_url 通知URL地址|参数组
      * @param string       $outTradeNo 商户订单号
      * @param string       $openid     openid
      * @param string       $totalFee   标价金额
      * @param string       $body       商品描述
      * @param array        $parameter  更多参数
+     *
      * @return array|bool
      */
     public function unifiedOrder($notify_url, $openid, $totalFee, $outTradeNo, $body, $parameter = [])
     {
         $data = [
-            'appid'            => self::$WX->getAppid(),
-            'device_info'      => 'WEB',
-            'mch_id'           => self::$CONFIG['mch_id'],
-            'nonce_str'        => self::$WX->generateNonceStr(16),
-            'sign_type'        => 'MD5',
-            'body'             => $body,
-            'out_trade_no'     => $outTradeNo,
-            'fee_type'         => 'CNY',
-            'total_fee'        => $totalFee,
+            'appid' => self::$WX->getAppid(),
+            'device_info' => 'WEB',
+            'mch_id' => self::$CONFIG['mch_id'],
+            'nonce_str' => self::$WX->generateNonceStr(16),
+            'sign_type' => 'MD5',
+            'body' => $body,
+            'out_trade_no' => $outTradeNo,
+            'fee_type' => 'CNY',
+            'total_fee' => $totalFee,
             'spbill_create_ip' => z::clientIp(),
-            'trade_type'       => 'JSAPI',
-            'openid'           => $openid,
+            'trade_type' => 'JSAPI',
+            'openid' => $openid,
         ];
         if (!is_array($notify_url)) {
             $data['notify_url'] = $notify_url;
@@ -86,35 +91,40 @@ class Pay implements WxInterface
     }
 
     /**
-     * 签名
+     * 签名.
+     *
      * @param array  $arrdata
      * @param string $signType 签名类型
+     *
      * @todo 后续要支持md5以外的加密方式
+     *
      * @return string
      */
     public function sign(&$arrdata = [], $signType = 'MD5')
     {
         ksort($arrdata);
-        $paramstring = "";
+        $paramstring = '';
         foreach ($arrdata as $key => $value) {
-            if (strlen($paramstring) == 0) {
-                $paramstring .= $key . "=" . $value;
+            if (0 == strlen($paramstring)) {
+                $paramstring .= $key.'='.$value;
             } else {
-                $paramstring .= "&" . $key . "=" . $value;
+                $paramstring .= '&'.$key.'='.$value;
             }
         }
-        $paramstring = $paramstring . '&key=' . self::$CONFIG['key'];
-        $sign = ($signType === 'MD5') ? strtoupper(md5($paramstring)) : $paramstring;
+        $paramstring = $paramstring.'&key='.self::$CONFIG['key'];
+        $sign = ('MD5' === $signType) ? strtoupper(md5($paramstring)) : $paramstring;
 
         return $sign;
     }
 
     /**
      * 发起请求
+     *
      * @param $url
      * @param $data
      * @param $xml
-     * @return array|bool|mixed|String
+     *
+     * @return array|bool|mixed|string
      */
     private function post($url, $data, $xml = true)
     {
@@ -126,7 +136,7 @@ class Pay implements WxInterface
             $result = $this->FromXml($result);
         }
         $errorCode = z::arrayGet($result, 'result_code', 'failed');
-        if ($errorCode === 'SUCCESS') {
+        if ('SUCCESS' === $errorCode) {
             return $result;
         } else {
             $errorMsg = z::arrayGet($result, 'err_code_des') ?: z::arrayGet($result, 'return_msg', '请求接口失败');
@@ -137,42 +147,48 @@ class Pay implements WxInterface
     }
 
     /**
-     * 输出xml
+     * 输出xml.
+     *
      * @param $array
+     *
      * @return string
      */
     private function toXml($array)
     {
-        $xml = "<xml>";
+        $xml = '<xml>';
         foreach ($array as $key => $val) {
             if (is_numeric($val)) {
-                $xml .= "<" . $key . ">" . $val . "</" . $key . ">";
+                $xml .= '<'.$key.'>'.$val.'</'.$key.'>';
             } else {
-                $xml .= "<" . $key . "><![CDATA[" . $val . "]]></" . $key . ">";
+                $xml .= '<'.$key.'><![CDATA['.$val.']]></'.$key.'>';
             }
         }
-        $xml .= "</xml>";
+        $xml .= '</xml>';
 
         return $xml;
     }
 
     /**
-     * 将xml转为array
+     * 将xml转为array.
+     *
      * @param string $xml
+     *
      * @return array|bool
      */
     private function FromXml($xml)
     {
         $data = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 
-        return $data ? (array)$data : false;
+        return $data ? (array) $data : false;
     }
 
     /**
-     * 查询订单
+     * 查询订单.
+     *
      * @param string $transactionId 微信订单号
      * @param string $outTradeNo    商户订单号
      * @param string $signType      签名类型
+     *
      * @return array|bool
      */
     public function orderquery($transactionId = '', $outTradeNo = '', $signType = 'MD5')
@@ -183,8 +199,8 @@ class Pay implements WxInterface
             return false;
         }
         $data = [
-            'mch_id'    => self::$CONFIG['mch_id'],
-            'appid'     => self::$WX->getAppid(),
+            'mch_id' => self::$CONFIG['mch_id'],
+            'appid' => self::$WX->getAppid(),
             'nonce_str' => self::$WX->generateNonceStr(32),
             'sign_type' => $signType,
         ];
@@ -201,19 +217,21 @@ class Pay implements WxInterface
     }
 
     /**
-     * 关闭订单
+     * 关闭订单.
+     *
      * @param string $outTradeNo 商户订单号
      * @param string $signType   签名类型
+     *
      * @return array|bool
      */
     public function closeorder($outTradeNo = '', $signType = 'MD5')
     {
         $data = [
             'out_trade_no' => $outTradeNo,
-            'mch_id'       => self::$CONFIG['mch_id'],
-            'appid'        => self::$WX->getAppid(),
-            'nonce_str'    => self::$WX->generateNonceStr(32),
-            'sign_type'    => $signType,
+            'mch_id' => self::$CONFIG['mch_id'],
+            'appid' => self::$WX->getAppid(),
+            'nonce_str' => self::$WX->generateNonceStr(32),
+            'sign_type' => $signType,
         ];
         if ($outTradeNo) {
             $data['out_trade_no'] = $outTradeNo;
@@ -224,28 +242,30 @@ class Pay implements WxInterface
     }
 
     /**
-     * 申请退款
+     * 申请退款.
+     *
      * @param int        $totalFee      订单总金额，单位为分，只能为整数
      * @param int        $refundFee     退款金额
      * @param int|string $outRefundNo   商户退款单号
      * @param string     $transactionId 微信订单号
      * @param string     $outTradeNo    商户订单号
      * @param array      $parameter     更多字段
+     *
      * @return array|bool
      */
     public function refund($totalFee, $refundFee = 0, $outRefundNo = '', $transactionId = '', $outTradeNo = '', array $parameter = [])
     {
         $mchId = self::$CONFIG['mch_id'];
         $data = [
-            'mch_id'          => $mchId,
-            'device_info'     => 'WEB',
-            'nonce_str'       => self::$WX->generateNonceStr(),
-            'sign_type'       => 'MD5',
-            'out_refund_no'   => $outRefundNo,
-            'total_fee'       => $totalFee,
-            'refund_fee'      => $refundFee,
+            'mch_id' => $mchId,
+            'device_info' => 'WEB',
+            'nonce_str' => self::$WX->generateNonceStr(),
+            'sign_type' => 'MD5',
+            'out_refund_no' => $outRefundNo,
+            'total_fee' => $totalFee,
+            'refund_fee' => $refundFee,
             'refund_fee_type' => 'CNY',
-            'op_user_id'      => $mchId,
+            'op_user_id' => $mchId,
         ];
         if (!is_array($totalFee)) {
             $data = array_merge($data, $parameter);
@@ -271,21 +291,23 @@ class Pay implements WxInterface
     }
 
     /**
-     * 查询退款
+     * 查询退款.
+     *
      * @param string|array $transactionId 微信订单号
      * @param string       $outTradeNo    商户订单号
      * @param string       $outRefundNo   商户退款单号
      * @param string       $refundId      微信退款单号
      * @param array        $parameter     更多参数
+     *
      * @return array|bool
      */
     public function refundquery($transactionId, $outTradeNo = '', $outRefundNo = '', $refundId = '', array $parameter = [])
     {
         $data = [
-            'appid'       => self::$WX->getAppid(),
+            'appid' => self::$WX->getAppid(),
             'device_info' => 'WEB',
-            'nonce_str'   => self::$WX->generateNonceStr(),
-            'sign_type'   => 'MD5',
+            'nonce_str' => self::$WX->generateNonceStr(),
+            'sign_type' => 'MD5',
         ];
         if (!is_array($transactionId)) {
             if ($outTradeNo) {
@@ -312,10 +334,11 @@ class Pay implements WxInterface
     }
 
     /**
-     * 支付结果通用通知
+     * 支付结果通用通知.
+     *
      * @param null|\Closure $callback
      * @param bool          $die
-     * @return void
+     *
      * @throws \Exception
      */
     public function notify($callback = null, $die = true)
@@ -325,7 +348,7 @@ class Pay implements WxInterface
         $result = ['return_code' => 'FAIL', 'return_msg' => '非法支付结果通用通知'];
         $errorCode = z::arrayGet($response, 'return_code', '201');
         if ($response) {
-            if ($errorCode == 'SUCCESS') {
+            if ('SUCCESS' == $errorCode) {
                 //开始签名验证
                 $data = $response;
                 unset($data['sign']);
@@ -333,7 +356,7 @@ class Pay implements WxInterface
                 if ($sign == $response['sign']) {
                     $result = ['return_code' => 'SUCCESS', 'return_msg' => 'ok'];
                 } else {
-                    $result['return_msg'] = '签名不一致,本地:' . $sign . ',微信:' . $response['sign'];
+                    $result['return_msg'] = '签名不一致,本地:'.$sign.',微信:'.$response['sign'];
                 }
             } else {
                 $result['return_msg'] = $response['return_msg'];
@@ -343,25 +366,26 @@ class Pay implements WxInterface
             $callback($response, $result);
         }
         $result = $this->toXml($result);
-        if ($die === true) {
+        if (true === $die) {
             z::finish($result);
         }
     }
 
-
     /**
-     * 微信页面支付签名
+     * 微信页面支付签名.
+     *
      * @param string|array $prepay_id 预付ID|参数组
+     *
      * @return array
      */
     public function jsSign($prepay_id)
     {
         if (!is_array($prepay_id)) {
             $data = [
-                'signType'  => 'MD5',
-                'timeStamp' => '1492053232',//time(),
-                'nonceStr'  => self::$WX->generateNonceStr(),
-                'package'   => 'prepay_id=' . $prepay_id,
+                'signType' => 'MD5',
+                'timeStamp' => '1492053232', //time(),
+                'nonceStr' => self::$WX->generateNonceStr(),
+                'package' => 'prepay_id='.$prepay_id,
             ];
         } else {
             $data = $prepay_id;
@@ -375,7 +399,8 @@ class Pay implements WxInterface
 
     /**
      * 发送企业红包
-     * //todo 开发中
+     * //todo 开发中.
+     *
      * @param string $total_amount 付款金额
      * @param string $openid       用户openid
      * @param string $mch_billno   商户订单号
@@ -386,24 +411,25 @@ class Pay implements WxInterface
      * @param string $scene_id     场景id
      * @param int    $total_num    红包发放总人数
      * @param array  $more
-     * @return array|bool|mixed|String
+     *
+     * @return array|bool|mixed|string
      */
     public function sendQyHb($total_amount, $openid, $mch_billno, $send_name, $act_name, $wishing, $remark, $scene_id = null, $total_num = 1, $more = [])
     {
         $data = [
-            'nonce_str'    => self::$WX->generateNonceStr(),
-            'mch_billno'   => $mch_billno,//商户订单号
-            'send_name'    => $send_name,//商户名称
-            're_openid'    => $openid,//用户openid
-            'total_amount' => $total_amount,//付款金额
-            'total_num'    => $total_num,//红包发放总人数
-            'wishing'      => $wishing,//红包祝福语
-            'client_ip'    => z::clientIp(),//Ip地址
-            'act_name'     => $act_name,//活动名称
-            'remark'       => $remark,//备注
+            'nonce_str' => self::$WX->generateNonceStr(),
+            'mch_billno' => $mch_billno, //商户订单号
+            'send_name' => $send_name, //商户名称
+            're_openid' => $openid, //用户openid
+            'total_amount' => $total_amount, //付款金额
+            'total_num' => $total_num, //红包发放总人数
+            'wishing' => $wishing, //红包祝福语
+            'client_ip' => z::clientIp(), //Ip地址
+            'act_name' => $act_name, //活动名称
+            'remark' => $remark, //备注
         ];
         if ($scene_id) {
-            $data['scene_id'] = $scene_id;//场景id PRODUCT_2
+            $data['scene_id'] = $scene_id; //场景id PRODUCT_2
         }
         if (is_array($total_amount)) {
             $data = array_merge($data, $total_amount);
@@ -420,7 +446,8 @@ class Pay implements WxInterface
     }
 
     /**
-     * 发送红包
+     * 发送红包.
+     *
      * @param string $total_amount 付款金额
      * @param string $openid       用户openid
      * @param string $mch_billno   商户订单号
@@ -431,24 +458,25 @@ class Pay implements WxInterface
      * @param string $scene_id     场景id
      * @param int    $total_num    红包发放总人数
      * @param array  $more
-     * @return array|bool|mixed|String
+     *
+     * @return array|bool|mixed|string
      */
     public function sendHb($total_amount, $openid, $mch_billno, $send_name, $act_name, $wishing, $remark, $scene_id = null, $total_num = 1, $more = [])
     {
         $data = [
-            'nonce_str'    => self::$WX->generateNonceStr(),
-            'mch_billno'   => $mch_billno,//商户订单号
-            'send_name'    => $send_name,//商户名称
-            're_openid'    => $openid,//用户openid
-            'total_amount' => $total_amount,//付款金额
-            'total_num'    => $total_num,//红包发放总人数
-            'wishing'      => $wishing,//红包祝福语
-            'client_ip'    => z::clientIp(),//Ip地址
-            'act_name'     => $act_name,//活动名称
-            'remark'       => $remark,//备注
+            'nonce_str' => self::$WX->generateNonceStr(),
+            'mch_billno' => $mch_billno, //商户订单号
+            'send_name' => $send_name, //商户名称
+            're_openid' => $openid, //用户openid
+            'total_amount' => $total_amount, //付款金额
+            'total_num' => $total_num, //红包发放总人数
+            'wishing' => $wishing, //红包祝福语
+            'client_ip' => z::clientIp(), //Ip地址
+            'act_name' => $act_name, //活动名称
+            'remark' => $remark, //备注
         ];
         if ($scene_id) {
-            $data['scene_id'] = $scene_id;//场景id PRODUCT_2
+            $data['scene_id'] = $scene_id; //场景id PRODUCT_2
         }
         if (is_array($total_amount)) {
             $data = array_merge($data, $total_amount);
@@ -465,7 +493,8 @@ class Pay implements WxInterface
     }
 
     /**
-     * 发送裂变红包
+     * 发送裂变红包.
+     *
      * @param string $total_amount 付款金额
      * @param string $openid       用户openid
      * @param string $mch_billno   商户订单号
@@ -475,22 +504,23 @@ class Pay implements WxInterface
      * @param string $scene_id     场景id
      * @param string $remark       备注
      * @param int    $total_num    红包发放总人数
-     * @return array|bool|mixed|String
+     *
+     * @return array|bool|mixed|string
      */
     public function sendGroupHb($total_amount, $openid, $mch_billno, $send_name, $act_name, $wishing, $remark, $scene_id = 'PRODUCT_2', $total_num = 1)
     {
         $data = [
-            'nonce_str'    => self::$WX->generateNonceStr(),
-            'mch_billno'   => $mch_billno,//商户订单号
-            'send_name'    => $send_name,//商户名称
-            're_openid'    => $openid,//用户openid
-            'total_amount' => $total_amount,//付款金额
-            'total_num'    => $total_num,//红包发放总人数
-            'wishing'      => $wishing,//红包祝福语
-            'client_ip'    => z::clientIp(),//Ip地址
-            'act_name'     => $act_name,//活动名称
-            'remark'       => $remark,//备注
-            'scene_id'     => $scene_id//场景id
+            'nonce_str' => self::$WX->generateNonceStr(),
+            'mch_billno' => $mch_billno, //商户订单号
+            'send_name' => $send_name, //商户名称
+            're_openid' => $openid, //用户openid
+            'total_amount' => $total_amount, //付款金额
+            'total_num' => $total_num, //红包发放总人数
+            'wishing' => $wishing, //红包祝福语
+            'client_ip' => z::clientIp(), //Ip地址
+            'act_name' => $act_name, //活动名称
+            'remark' => $remark, //备注
+            'scene_id' => $scene_id, //场景id
         ];
         if (is_array($total_amount)) {
             $data = array_merge($data, $total_amount);
@@ -504,16 +534,18 @@ class Pay implements WxInterface
     }
 
     /**
-     * 获取红包详情
+     * 获取红包详情.
+     *
      * @param string $mch_billno 商户订单号
-     * @return array|bool|mixed|String
+     *
+     * @return array|bool|mixed|string
      */
     public function getHbInfo($mch_billno)
     {
         $data = [
-            'nonce_str'  => self::$WX->generateNonceStr(),
+            'nonce_str' => self::$WX->generateNonceStr(),
             'mch_billno' => $mch_billno,
-            'bill_type'  => 'MCHT',
+            'bill_type' => 'MCHT',
         ];
         if (is_array($mch_billno)) {
             $data = array_merge($data, $mch_billno);

@@ -14,13 +14,13 @@ class WeChat extends \Zls\Command\Command
     public function init($args)
     {
         $force = Z::arrayGet($args, ['-force', 'F']);
-        $this->copy(z::realPath(__DIR__ . '/../Config/wechat.php', false, false), $force);
+        $this->copy(z::realPath(__DIR__.'/../Config/wechat.php', false, false), $force);
     }
 
     private function copy($origin, $force)
     {
         $config = Z::config();
-        $path = z::realPath(ZLS_APP_PATH . 'config/default/wechat.php', false, false);
+        $path = z::realPath(ZLS_APP_PATH.'config/default/wechat.php', false, false);
         if (!file_exists($path) || $force) {
             $this->printStrN("copy config: {$origin} -> {$path}");
             copy($origin, $path);
@@ -28,23 +28,23 @@ class WeChat extends \Zls\Command\Command
             if ($config->find('ini')) {
                 $ini = z::config('ini');
                 /**
-                 * @var \Zls\Action\Ini $ActionIni
+                 * @var \Zls\Action\Ini
                  */
                 $ActionIni = z::extension('Action\Ini');
                 $ini = array_merge($ini, [
                     'wechat' => [
-                        'token'              => '',
-                        'appid'              => '',
-                        'appsecret'          => '',
-                        'corpid'             => '',
-                        'agentid'            => '',
-                        'encodingAesKey'     => '',
-                        'componentAppid'     => '',
+                        'token' => '',
+                        'appid' => '',
+                        'appsecret' => '',
+                        'corpid' => '',
+                        'agentid' => '',
+                        'encodingAesKey' => '',
+                        'componentAppid' => '',
                         'componentAppsecret' => '',
-                        'debug'              => 1,
+                        'debug' => 1,
                     ],
                 ]);
-                @file_put_contents(ZLS_PATH . '../zls.ini', $ActionIni->extended($ini));
+                @file_put_contents(ZLS_PATH.'../zls.ini', $ActionIni->extended($ini));
                 $this->success('Please amend the zls.ini');
             }
         } else {
@@ -63,7 +63,8 @@ class WeChat extends \Zls\Command\Command
     }
 
     /**
-     * 命令介绍
+     * 命令介绍.
+     *
      * @return string
      */
     public function description()
