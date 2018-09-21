@@ -11,6 +11,7 @@ namespace Zls\WeChat;
  * @since         v0.0.1
  * @updatetime    2017-06-06 11:01
  */
+
 use Z;
 
 class Basi implements WxInterface
@@ -41,11 +42,9 @@ class Basi implements WxInterface
 
     /**
      * 拼接授权页.
-     *
      * @param $callback
      * @param $state
      * @param $scope
-     *
      * @return string
      */
     public function getOauthRedirect($callback, $state, $scope)
@@ -56,11 +55,16 @@ class Basi implements WxInterface
         return $wx::OPENURL.'/connect/oauth2/authorize?'.'appid='.$wx->getAppid().'&redirect_uri='.urlencode($callback).'&response_type=code&scope='.$scope.'&state='.$state.$component.'#wechat_redirect';
     }
 
+    public function getUserInfo($openid)
+    {
+        $wx = $this->wx;
+
+        return $wx->get($wx::APIURL.'/cgi-bin/user/info?access_token='.$wx->getAccessToken().'&openid='.$openid.'&lang=zh_CN');
+    }
+
     /**
      * 获取用户详情.
-     *
      * @param null $openid
-     *
      * @return bool|mixed|string
      */
     public function getAuthUserInfo($openid = null)
@@ -72,14 +76,13 @@ class Basi implements WxInterface
         }
 
         return $wx->get($wx::APIURL.'/sns/userinfo?access_token='.z::arrayGet(
-            $authData,
-                'access_token'
-        ).'&openid='.$openid.'&lang=zh_CN');
+                            $authData,
+                            'access_token'
+                        ).'&openid='.$openid.'&lang=zh_CN');
     }
 
     /**
      * @param $authCode
-     *
      * @return array|bool
      */
     public function getAuthAccessToken($authCode)

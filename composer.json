@@ -1,6 +1,6 @@
 {
   "name": "zls/wechat",
-  "description": "微信开发",
+  "description": "wechat develop, Support WeChat, Work WeChat, WeChat open platform",
   "type": "library",
   "license": "MIT",
   "minimum-stability": "dev",
@@ -16,7 +16,7 @@
     }
   },
   "require": {
-    "zls/action": ">=1.0.0",
-    "zls/command": ">=1.0.0"
+    "zls/action": "*",
+    "zls/command": "*"
   }
 }

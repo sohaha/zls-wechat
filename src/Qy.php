@@ -11,6 +11,7 @@ namespace Zls\WeChat;
  * @since         v0.0.1
  * @updatetime    2017-6-22 14:07:22
  */
+
 use Z;
 
 class Qy implements WxInterface
@@ -52,9 +53,7 @@ class Qy implements WxInterface
 
     /**
      * 获取应用概况列表.
-     *
      * @param int $time
-     *
      * @return mixed
      */
     public function getAgentList($time = 60)
@@ -68,9 +67,7 @@ class Qy implements WxInterface
 
     /**
      * 根据code获取成员信息.
-     *
      * @param $authCode
-     *
      * @return array|bool
      */
     public function getAuthAccessToken($authCode)
@@ -79,17 +76,22 @@ class Qy implements WxInterface
 
         return z::tap($wx->post($wx::QYAPIURL.'/cgi-bin/user/getuserinfo?access_token='.$wx->getAccessToken().'&code='.$authCode), function (&$result) {
             $openid = z::arrayGet($result, 'Openid');
-            if ((bool) $openid) {
+            if ((bool)$openid) {
                 $result['openid'] = $openid;
             }
         });
     }
 
+    public function getUserInfo($userid)
+    {
+        $wx = $this->wx;
+
+        return $wx->get($wx::QYAPIURL.'/cgi-bin/user/get?access_token='.$wx->getAccessToken().'&userid='.$userid);
+    }
+
     /**
      * 获取用户详情.
-     *
      * @param null $userTicket
-     *
      * @return bool|mixed|string
      */
     public function getAuthUserInfo($userTicket = null)
@@ -109,11 +111,9 @@ class Qy implements WxInterface
 
     /**
      * 拼接授权页.
-     *
      * @param $callback
      * @param $state
      * @param $scope
-     *
      * @return string
      */
     public function getOauthRedirect($callback, $state, $scope)

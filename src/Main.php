@@ -6,16 +6,12 @@ use Z;
 
 /**
  * WeChat.
- *
  * @author        影浅
  * @email         seekwe@gmail.com
- *
  * @copyright     Copyright (c) 2015 - 2017, 影浅, Inc.
- *
- * @see          ---
+ * @see           ---
  * @since         v2.0.16
  * @updatetime    2018-1-11 17:44:38
- *
  * @method Qr   getQr()   二维码
  * @method Qy   getQy()   企业号
  * @method Pay  getPay()  支付
@@ -24,45 +20,45 @@ use Z;
  */
 class Main
 {
-    const APIURL = 'https://api.weixin.qq.com';
-    const OPENURL = 'https://open.weixin.qq.com';
-    const FILEURL = 'https://file.api.weixin.qq.com';
-    const QYAPIURL = 'https://qyapi.weixin.qq.com';
-    const QYOPENURL = 'https://open.weixin.qq.com';
+    const APIURL               = 'https://api.weixin.qq.com';
+    const OPENURL              = 'https://open.weixin.qq.com';
+    const FILEURL              = 'https://file.api.weixin.qq.com';
+    const QYAPIURL             = 'https://qyapi.weixin.qq.com';
+    const QYOPENURL            = 'https://open.weixin.qq.com';
     const OUTTIME_JSAPI_TICKET = '_jsapi_ticket_outTime';
     const OUTTIME_ACCESS_TOKEN = '_access_token_outTime';
 
     public static $errCode;
-    private $debug = true;
-    private $errorCode = -1;
-    private $errorMsg = '参数错误';
-    private $encodingAesKey;
-    private $appid;
-    private $componentAppid;
-    private $componentAppsecret;
-    private $componentAccessToken;
-    private $componentAuthorizerAccessToken;
-    private $uniqueKey;
-    private $appsecret;
-    private $token;
-    private $_receive;
-    private $_encrypt;
-    private $_signature;
-    private $_timestamp;
-    private $_nonce;
-    private $_msg_signature;
-    private $_receiveXml;
-    private $accessToken;
-    private $jsapiTicket;
-    private $openid;
-    private $userid;
-    private $authScope = 'snsapi_userinfo'; //snsapi_base|snsapi_userinfo 全权限授权
-    private $authState = 'zls_wechat';
-    private $authAccessToken;
-    private $refreshComponentCallback;
-    private $agentid;
-    private $reAccessToken;
-    private $reply = true;
+    private       $debug     = true;
+    private       $errorCode = -1;
+    private       $errorMsg  = '参数错误';
+    private       $encodingAesKey;
+    private       $appid;
+    private       $componentAppid;
+    private       $componentAppsecret;
+    private       $componentAccessToken;
+    private       $componentAuthorizerAccessToken;
+    private       $uniqueKey;
+    private       $appsecret;
+    private       $token;
+    private       $_receive;
+    private       $_encrypt;
+    private       $_signature;
+    private       $_timestamp;
+    private       $_nonce;
+    private       $_msg_signature;
+    private       $_receiveXml;
+    private       $accessToken;
+    private       $jsapiTicket;
+    private       $openid;
+    private       $userid;
+    private       $authScope = 'snsapi_userinfo'; //snsapi_base|snsapi_userinfo 全权限授权
+    private       $authState = 'zls_wechat';
+    private       $authAccessToken;
+    private       $refreshComponentCallback;
+    private       $agentid;
+    private       $reAccessToken;
+    private       $reply     = true;
 
     public function __construct()
     {
@@ -96,7 +92,6 @@ class Main
 
     /**
      * WeChatUtil.
-     *
      * @return Util
      */
     public function getUtil()
@@ -135,9 +130,7 @@ class Main
 
     /**
      * 设置是否开启记录日志.
-     *
      * @param bool $debug
-     *
      * @return Main
      */
     public function setDebug($debug)
@@ -149,9 +142,7 @@ class Main
 
     /**
      * 进行开放平台授权.
-     *
      * @param string $redirect_uri 回调地址 默认当前页面
-     *
      * @return array|string
      */
     public function runComponentAuth($redirect_uri = '')
@@ -184,9 +175,7 @@ class Main
 
     /**
      * 获取开放平台接口调用凭据和授权信息.
-     *
      * @param $authorization_code
-     *
      * @return array|bool
      */
     public function getComponentApiQueryAuth($authorization_code)
@@ -226,11 +215,9 @@ class Main
 
     /**
      * POST请求
-     *
      * @param      $url
      * @param null $data
      * @param bool $atUpload
-     *
      * @return bool|array
      */
     public function post($url, $data = null, $atUpload = false)
@@ -266,7 +253,6 @@ class Main
 
     /**
      * 打印日志.
-     *
      * @param $_
      */
     public function log($_)
@@ -303,8 +289,8 @@ class Main
             case 40001: //accessToken无效
                 //case 40125:
                 $this->errorLog('缓存没过期，但是accessToken失效了:'.$this->reAccessToken);
-                if ((bool) $this->reAccessToken) {
-                    $this->reAccessToken = ((int) $this->reAccessToken) - 1;
+                if ((bool)$this->reAccessToken) {
+                    $this->reAccessToken = ((int)$this->reAccessToken) - 1;
                     $this->accessToken = '';
                     $this->getAccessToken(false);
                     //$this->getError(true);
@@ -330,9 +316,7 @@ class Main
 
     /**
      * 获取AccessToken.
-     *
      * @param bool $cache
-     *
      * @return bool|string
      */
     public function getAccessToken($cache = true)
@@ -365,9 +349,7 @@ class Main
 
     /**
      * 设置AccessToken.
-     *
      * @param string $access_token
-     *
      * @return Main
      */
     public function setAccessToken($access_token)
@@ -390,12 +372,12 @@ class Main
      */
     public function setAgentid($agentid)
     {
+        $this->accessToken = '';
         $this->agentid = $agentid;
     }
 
     /**
      * @param string $key
-     *
      * @return mixed
      */
     public function getUniqueKey($key = '')
@@ -405,9 +387,7 @@ class Main
 
     /**
      * 设置唯一Key.
-     *
      * @param mixed $uniqueKey
-     *
      * @return Main
      */
     public function setUniqueKey($uniqueKey = null)
@@ -437,7 +417,6 @@ class Main
     /**
      * @param      $type
      * @param null $expiresIn
-     *
      * @return int|null
      */
     public function outTime($type, $expiresIn = null)
@@ -463,9 +442,7 @@ class Main
 
     /**
      * 设置Appid.
-     *
      * @param mixed $appid
-     *
      * @return Main
      */
     public function setAppid($appid)
@@ -482,9 +459,7 @@ class Main
 
     /**
      * 获取开放平台AuthorizerAccessToken.
-     *
      * @param string $appid
-     *
      * @return mixed
      */
     public function getComponentAuthorizerAccessToken($appid = '')
@@ -501,7 +476,6 @@ class Main
 
     /**
      * 设置开放平台授权公众号AccessToken.
-     *
      * @param mixed  $componentAuthorizerAccessToken
      * @param string $appid
      * @param int    $expiresIn
@@ -525,10 +499,8 @@ class Main
 
     /**
      * 刷新AuthorizerAccessToken.
-     *
      * @param string $appid                  appid
      * @param string $authorizerRefreshToken 刷新令牌
-     *
      * @return mixed
      */
     public function refreshComponentAuthorizerAccessToken($appid = '', $authorizerRefreshToken = null)
@@ -563,9 +535,7 @@ class Main
 
     /**
      * 获取刷新令牌.
-     *
      * @param string $appid
-     *
      * @return mixed
      */
     public function getComponentRefreshToken($appid = '')
@@ -579,9 +549,7 @@ class Main
 
     /**
      * 获取开放平台AccessToken.
-     *
      * @param bool $cache
-     *
      * @return mixed
      */
     public function getComponentAccessToken($cache = true)
@@ -620,7 +588,6 @@ class Main
 
     /**
      * 设置开放平台AccessToken.
-     *
      * @param mixed $componentAccessToken
      */
     public function setComponentAccessToken($componentAccessToken)
@@ -633,7 +600,6 @@ class Main
 
     /**
      * 获取component_verify_ticket.
-     *
      * @return mixed
      */
     public function getComponentTicket()
@@ -677,10 +643,9 @@ class Main
 
     /**
      * 设置刷新令牌.
-     *
      * @param mixed  $componentRefreshToken
-     * @param string $appid                 指定公众号
-     * @param int    $expiresIn             过期时间
+     * @param string $appid     指定公众号
+     * @param int    $expiresIn 过期时间
      */
     public function setComponentRefreshToken($componentRefreshToken, $appid = '', $expiresIn = 3600)
     {
@@ -758,7 +723,6 @@ class Main
 
     /**
      * @param mixed $encodingAesKey
-     *
      * @return Main
      */
     public function setEncodingAesKey($encodingAesKey)
@@ -779,9 +743,7 @@ class Main
 
     /**
      * 设置token.
-     *
      * @param mixed $token
-     *
      * @return Main
      */
     public function setToken($token)
@@ -827,10 +789,8 @@ class Main
 
     /**
      * 请求上传文件.
-     *
      * @param      $url
      * @param null $data
-     *
      * @return bool|array
      */
     public function upload($url, $data = null)
@@ -852,7 +812,6 @@ class Main
      * @param     $key
      * @param     $data
      * @param int $time
-     *
      * @return mixed
      */
     public function cache($key, $data, $time = 30)
@@ -868,11 +827,9 @@ class Main
 
     /**
      * 微信js签名.
-     *
      * @param string $url
      * @param int    $timestamp
      * @param string $noncestr
-     *
      * @return array|bool
      */
     public function getJsSign($url = '', $timestamp = 0, $noncestr = '')
@@ -927,7 +884,6 @@ class Main
 
     /**
      * 获取Ticket.
-     *
      * @return bool|string
      */
     public function getJsapiTicket()
@@ -952,9 +908,7 @@ class Main
 
     /**
      * 设置Ticket.
-     *
      * @param mixed $jsapiTicket
-     *
      * @return Main
      */
     public function setJsapiTicket($jsapiTicket)
@@ -966,9 +920,7 @@ class Main
 
     /**
      * 生成随机字符串.
-     *
      * @param int $length
-     *
      * @return string
      */
     public function generateNonceStr($length = 16)
@@ -984,7 +936,6 @@ class Main
 
     /**
      * 设置刷新AuthorizerAccessToken回调.
-     *
      * @param \Closure $closure
      */
     public function setRefreshComponentCallback(\Closure $closure)
@@ -1002,14 +953,12 @@ class Main
 
     /**
      * 获取用户详情.
-     *
-     * @param $openid
-     *
+     * @param string $id openid|userid
      * @return mixed
      */
-    public function getUserInfo($openid)
+    public function getUserInfo($id)
     {
-        return $this->get(self::APIURL.'/cgi-bin/user/info?access_token='.$this->getAccessToken().'&openid='.$openid.'&lang=zh_CN');
+        return $this->instance()->getUserInfo($id);
     }
 
     public function get($url, $data = null)
@@ -1019,9 +968,7 @@ class Main
 
     /**
      * 获取授权用户OPENID.
-     *
      * @param string $type
-     *
      * @return array
      */
     public function getAuthUserOpenid($type = 'openid')
@@ -1066,10 +1013,8 @@ class Main
 
     /**
      * 获取授权 oauth_code.
-     *
      * @param string $url
      * @param string $oldCode
-     *
      * @return string|mixed
      */
     public function authCode($url = null, $oldCode = '')
@@ -1097,11 +1042,9 @@ class Main
 
     /**
      * 获取授权URl.
-     *
      * @param        $callback
      * @param string $state
      * @param string $scope
-     *
      * @return string
      */
     public function getOauthRedirect($callback = null, $state = '', $scope = 'snsapi_userinfo')
@@ -1121,7 +1064,6 @@ class Main
 
     /**
      * @param string $authState
-     *
      * @return Main
      */
     public function setAuthState($authState)
@@ -1141,9 +1083,7 @@ class Main
 
     /**
      * 设置页面授权方式.
-     *
-     * @param string $authScope snsapi_base|snsapi_userinfo
-     *
+     * @param string $authScope snsapi_base|snsapi_userinfo|snsapi_privateinfo
      * @return Main
      */
     public function setAuthScope($authScope)
@@ -1163,7 +1103,6 @@ class Main
 
     /**
      * @param mixed $appsecret
-     *
      * @return Main
      */
     public function setAppsecret($appsecret)
@@ -1175,9 +1114,7 @@ class Main
 
     /**
      * 获取授权用户详情.
-     *
      * @param null $openid
-     *
      * @return bool|mixed|string
      */
     public function getAuthUserInfo($openid = null)
@@ -1187,10 +1124,8 @@ class Main
 
     /**
      * 下载多媒体.
-     *
      * @param string $media_id 媒体ID
      * @param string $saveFile 文件保存路径
-     *
      * @return string
      */
     public function mediaDownload($media_id = '', $saveFile)
@@ -1236,7 +1171,6 @@ class Main
     /**
      * @param $type
      * @param $fn
-     *
      * @return $this
      */
     public function on($type, \Closure $fn)
@@ -1325,7 +1259,7 @@ class Main
             $xml = simplexml_load_string($msg, 'SimpleXMLElement', LIBXML_NOCDATA);
         }
 
-        return (array) $xml;
+        return (array)$xml;
     }
 
     /**
@@ -1346,7 +1280,6 @@ class Main
 
     /**
      * 被动回复消息.
-     *
      * @param string $_ 为空则不返回任何消息
      */
     public function push($_ = null)
@@ -1371,9 +1304,7 @@ class Main
 
     /**
      * 处理开放平台推送事件.
-     *
      * @param \Closure $closure
-     *
      * @return bool
      */
     public function runComponentPush($closure = null)
@@ -1400,7 +1331,6 @@ class Main
 
     /**
      * 设置component_verify_ticket.
-     *
      * @param $ticket
      */
     public function setComponentTicket($ticket)
@@ -1412,9 +1342,7 @@ class Main
 
     /**
      * 获取错误信息详情.
-     *
      * @param null $code
-     *
      * @return array|string
      */
     public function errorCode($code = null)
