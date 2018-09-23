@@ -141,7 +141,7 @@ class Main
     }
 
     /**
-     * 进行开放平台授权.
+     * 开放平台授权
      * @param string $redirect_uri 回调地址 默认当前页面
      * @return array|string
      */
@@ -1298,7 +1298,11 @@ class Main
             $result = 'success';
         } else {
             $data = func_get_args();
-            $type = array_shift($data);
+            if (count($data) > 1) {
+                $type = array_shift($data);
+            } else {
+                $type = 'text';
+            }
             list($getRev) = $this->getRev();
             $data = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
             $result = $this->getUtil()->getXml($type, $data);
