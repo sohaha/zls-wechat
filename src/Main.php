@@ -281,6 +281,8 @@ class Main
             $data['log'] = $arg;
         }
         Z::log($data, 'wx');
+
+        return $data;
     }
 
     public function setError($errorCode, $errorMsg, $force = false)
@@ -311,10 +313,13 @@ class Main
 
     /**
      * @param $_
+     * @return Main
      */
     public function errorLog($_)
     {
-        return $this->output();
+        $this->output();
+
+        return $this;
     }
 
     /**
