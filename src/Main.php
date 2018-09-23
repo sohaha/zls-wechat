@@ -254,12 +254,15 @@ class Main
     /**
      * 打印日志.
      * @param $_
+     * @return Main
      */
     public function log($_)
     {
         if ($this->debug) {
             $this->output();
         }
+
+        return $this;
     }
 
     protected function output()
@@ -311,7 +314,7 @@ class Main
      */
     public function errorLog($_)
     {
-        $this->output();
+        return $this->output();
     }
 
     /**
@@ -961,11 +964,6 @@ class Main
         return $this->instance()->getUserInfo($id);
     }
 
-    public function get($url, $data = null)
-    {
-        return $this->request($url, $data, 'get');
-    }
-
     /**
      * 获取授权用户OPENID.
      * @param string $type
@@ -1144,6 +1142,11 @@ class Main
         $this->errorLog('多媒体下载失败', $result);
 
         return false;
+    }
+
+    public function get($url, $data = null)
+    {
+        return $this->request($url, $data, 'get');
     }
 
     public function valid()
