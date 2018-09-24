@@ -29,36 +29,36 @@ class Main
     const OUTTIME_ACCESS_TOKEN = '_access_token_outTime';
 
     public static $errCode;
-    private       $debug     = true;
-    private       $errorCode = -1;
-    private       $errorMsg  = '参数错误';
-    private       $encodingAesKey;
-    private       $appid;
-    private       $componentAppid;
-    private       $componentAppsecret;
-    private       $componentAccessToken;
-    private       $componentAuthorizerAccessToken;
-    private       $uniqueKey;
-    private       $appsecret;
-    private       $token;
-    private       $_receive;
-    private       $_encrypt;
-    private       $_signature;
-    private       $_timestamp;
-    private       $_nonce;
-    private       $_msg_signature;
-    private       $_receiveXml;
-    private       $accessToken;
-    private       $jsapiTicket;
-    private       $openid;
-    private       $userid;
-    private       $authScope = 'snsapi_userinfo'; //snsapi_base|snsapi_userinfo 全权限授权
-    private       $authState = 'zls_wechat';
-    private       $authAccessToken;
-    private       $refreshComponentCallback;
-    private       $agentid;
-    private       $reAccessToken;
-    private       $reply     = true;
+    private $debug     = true;
+    private $errorCode = -1;
+    private $errorMsg  = '参数错误';
+    private $encodingAesKey;
+    private $appid;
+    private $componentAppid;
+    private $componentAppsecret;
+    private $componentAccessToken;
+    private $componentAuthorizerAccessToken;
+    private $uniqueKey;
+    private $appsecret;
+    private $token;
+    private $_receive;
+    private $_encrypt;
+    private $_signature;
+    private $_timestamp;
+    private $_nonce;
+    private $_msg_signature;
+    private $_receiveXml;
+    private $accessToken;
+    private $jsapiTicket;
+    private $openid;
+    private $userid;
+    private $authScope = 'snsapi_userinfo'; //snsapi_base|snsapi_userinfo 全权限授权
+    private $authState = 'zls_wechat';
+    private $authAccessToken;
+    private $refreshComponentCallback;
+    private $agentid;
+    private $reAccessToken;
+    private $reply     = true;
 
     public function __construct()
     {
@@ -856,12 +856,7 @@ class Main
         if (empty($url)) {
             return false;
         }
-        $arrdata = [
-            'timestamp' => $timestamp,
-            'noncestr' => $noncestr,
-            'url' => $url,
-            'jsapi_ticket' => $this->getJsapiTicket(),
-        ];
+        $arrdata = ['timestamp' => $timestamp, 'noncestr' => $noncestr, 'url' => $url, 'jsapi_ticket' => $this->getJsapiTicket(),];
         $cacheKey = $this->getUniqueKey().'_js_sign_'.md5($url.$this->getJsapiTicket());
         if (!$signPackage = Z::cache()->get($cacheKey)) {
             if (!function_exists('sha1')) {
@@ -877,13 +872,7 @@ class Main
                 }
             }
             $Sign = sha1($paramstring);
-            $signPackage = [
-                'appid' => $this->getAppid(),
-                'nonceStr' => $noncestr,
-                'timestamp' => $timestamp,
-                'url' => $url,
-                'signature' => $Sign,
-            ];
+            $signPackage = ['appid' => $this->getAppid(), 'nonceStr' => $noncestr, 'timestamp' => $timestamp, 'url' => $url, 'signature' => $Sign,];
             Z::cache()->set($cacheKey, $signPackage, 3600);
         }
 
@@ -1168,10 +1157,10 @@ class Main
                 $error = $this->getUtil()->checkSignature($this->getToken(), $signature, $timestamp, $nonce);
             }
             if (0 == $error) {
-                Z::finish($echoStr);
+                Z::end($echoStr);
             } else {
                 $this->errorLog('解密valid失败'.$error);
-                Z::finish('error');
+                Z::end('error');
             }
         }
     }
@@ -1212,7 +1201,7 @@ class Main
             }
         } else {
             $this->errorLog('消息获取失败');
-            Z::finish();
+            Z::end();
         }
     }
 
@@ -1230,24 +1219,12 @@ class Main
                     $this->_timestamp = Z::get('timestamp');
                     $this->_nonce = Z::get('nonce');
                     $this->_msg_signature = Z::get('msg_signature');
-                    $errCode = $this->getCrypt()->decryptMsg(
-                        $this->_msg_signature,
-                        $this->_timestamp,
-                        $this->_nonce,
-                        $postStr,
-                        $msg
-                    );
+                    $errCode = $this->getCrypt()->decryptMsg($this->_msg_signature, $this->_timestamp, $this->_nonce, $postStr, $msg);
                     if (0 === $errCode) {
                         $this->_receiveXml = $msg;
                         $this->_receive = $this->FromXml($msg);
                     } else {
-                        $this->errorLog(
-                            '消息解密失败:'.$errCode,
-                            $this->_msg_signature,
-                            $this->_timestamp,
-                            $this->_nonce,
-                            $postStr
-                        );
+                        $this->errorLog('消息解密失败:'.$errCode, $this->_msg_signature, $this->_timestamp, $this->_nonce, $postStr);
                         $this->_receive = [];
                     }
                 }
@@ -1311,7 +1288,7 @@ class Main
             }
             $this->log('最终返回微信', $result);
         }
-        Z::finish($result);
+        Z::end($result);
     }
 
     /**
