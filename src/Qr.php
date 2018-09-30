@@ -181,7 +181,7 @@ class Qr implements WxInterface
     public function create($sceneId, $actionInfo = [])
     {
         if ($generateActionInfo = $this->generateActionInfo($sceneId, true)) {
-            $data = ['action_name' => $generateActionInfo['actionName'], 'expire_seconds' => $expireSeconds, 'action_info' => array_merge($actionInfo, $generateActionInfo['actionInfo'])];
+            $data = ['action_name' => $generateActionInfo['actionName'], 'action_info' => array_merge($actionInfo, $generateActionInfo['actionInfo'])];
 
             return $this->post($data);
         }
