@@ -185,7 +185,7 @@ class Util
                 $template = $this->textTemplate($data);
         }
 
-        return vsprintf($template, $data);
+        return $template;// vsprintf($template, $data);
     }
 
     public function textTemplate($data)
