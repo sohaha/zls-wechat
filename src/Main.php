@@ -6,11 +6,7 @@ use Z;
 
 /**
  * WeChat.
- * @author        影浅
- * @email         seekwe@gmail.com
- * @copyright     Copyright (c) 2015 - 2017, 影浅, Inc.
- * @see           ---
- * @since         v2.0.16
+ * @author        影浅 seekwe@gmail.com
  * @updatetime    2018-1-11 17:44:38
  * @method Qr   getQr()   二维码
  * @method Qy   getQy()   企业号
@@ -59,6 +55,7 @@ class Main
     private $agentid;
     private $reAccessToken;
     private $reply = true;
+    private $triggerResetToken;
 
     public function __construct()
     {
@@ -84,6 +81,8 @@ class Main
         $this->debug              = Z::arrayGet($data, 'debug');
         $this->agentid            = Z::arrayGet($data, 'agentid');
         $this->reAccessToken      = Z::arrayGet($data, 'reAccessToken', 1);
+        $this->triggerResetToken  = Z::arrayGet($data, 'triggerResetToken', 100);
+        if($this->triggerResetToken<0) $this->triggerResetToken = 0;
         $this->setUniqueKey();
         /** @var Util $util */
         $util          = $this->getUtil();
@@ -336,8 +335,8 @@ class Main
                 $accessToken      = Z::cache()->get($cacheKey);
                 $detectionOuttime = function ($accessToken) {
                     if ($accessToken) {
-                        $rand = mt_rand(0, 10);
-                        if ($rand <= 1) {
+                        $rand = mt_rand(0, $this->triggerResetToken);
+                        if ($rand === 0) {
                             $timeout = $this->getAccessTokenOutTime();
                             // 提前5分钟判断 token 是否将要过期
                             if ($timeout <= (time() + 300)) {
