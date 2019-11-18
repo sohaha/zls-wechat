@@ -131,7 +131,7 @@ class Pay implements WxInterface
         if ($xml) {
             $data = $this->toXml($data);
         }
-        $result = self::$WX->request($url, $data, 'post', 'xml');
+        $result = self::$WX->request($url, $data, 'post', 'xml','xml');
         if ($xml) {
             $result = $this->FromXml($result);
         }
