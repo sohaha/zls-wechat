@@ -383,7 +383,7 @@ class Pay implements WxInterface
         if (!is_array($prepay_id)) {
             $data = [
                 'signType' => 'MD5',
-                'timeStamp' => '1492053232', //time(),
+                'timeStamp' => time(),
                 'nonceStr' => self::$WX->generateNonceStr(),
                 'package' => 'prepay_id='.$prepay_id,
             ];
