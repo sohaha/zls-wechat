@@ -89,6 +89,7 @@ class Main
         /** @var Util $util */
         $util          = $this->getUtil();
         self::$errCode = $util->errCode;
+        return $this;
     }
 
     /**
