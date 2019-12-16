@@ -164,7 +164,7 @@ class Qr implements WxInterface
             header('Content-type: image/png');
             imagepng($QR);
             imagedestroy($QR);
-            z::finish();
+            z::end();
 
             return true;
         }

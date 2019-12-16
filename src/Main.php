@@ -10,7 +10,7 @@ use Z;
  * @updatetime    2018-1-11 17:44:38
  * @method Qr   getQr()   二维码
  * @method Qy   getQy()   企业号
- * @method Pay  getPay()  支付
+ * @method Pay  getPay(?array $initConfig)  支付
  * @method Basi getBasi() 公众号
  * @method App  getApp()  小程序
  */
@@ -89,6 +89,7 @@ class Main
         /** @var Util $util */
         $util          = $this->getUtil();
         self::$errCode = $util->errCode;
+
         return $this;
     }
 
@@ -126,9 +127,11 @@ class Main
     {
         $className = 'Zls_WeChat_' . str_replace('get', '', $name);
         $class     = Z::factory($className, true, null, [$this]);
-        if(!empty($value)&&method_exists($class,'init')){
-            $class->init($value);
+        if (method_exists($class, 'init')) {
+            $cfg = Z::arrayGet($value, 0, Z::config('wechat'));
+            $class->init($cfg);
         }
+
         return $class;
     }
 
@@ -1269,7 +1272,7 @@ class Main
 
     public function run()
     {
-        list($getRev, $getRevXml) = $this->getRev();
+        [$getRev, $getRevXml] = $this->getRev();
         if ($getRev) {
             //是否回复
             if (!$this->isReply()) {
@@ -1366,7 +1369,7 @@ class Main
             } else {
                 $type = 'text';
             }
-            list($getRev) = $this->getRev();
+            [$getRev] = $this->getRev();
             $data   = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
             $result = $this->getUtil()->getXml($type, $data);
             if (true === $this->_encrypt) {
