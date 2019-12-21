@@ -152,20 +152,31 @@ class Main
     /**
      * 开放平台授权
      *
-     * @param string $redirect_uri 回调地址 默认当前页面
+     * @param string $redirectUri 回调地址 默认当前页面
      *
      * @return array|string
      */
-    public function runComponentAuth($redirect_uri = '')
+    public function runComponentAuth($redirectUri = '')
     {
-        if (!$redirect_uri) {
-            $redirect_uri = Z::host(true, true, true);
+        if (!$redirectUri) {
+            $redirectUri = Z::host(true, true, true);
+        }
+        if (!$this->getComponentTicket()) {
+            $this->setError($this->errorCode, '微信还没下发Ticket，请稍后再试');
+
+            return false;
         }
         if ($auth_code = Z::get('auth_code')) {
-            return Z::tap($this->getComponentApiQueryAuth($auth_code), function ($authInfo) use ($redirect_uri) {
-                if ('61010' == $this->errorCode) {
-                    unset($_GET['auth_code']);
-                    $this->runComponentAuth($redirect_uri);
+            return Z::tap($this->getComponentApiQueryAuth($auth_code), function ($authInfo) use ($redirectUri) {
+                if ($this->errorCode > 0) {
+                    if (61010 === (int)$this->errorCode) {
+                        $get = Z::get();
+                        unset($get['auth_code']);
+                        Z::setGlobalData(ZLS_PREFIX . 'get', $get);
+                        $this->runComponentAuth($redirectUri);
+                    }
+
+                    return;
                 }
                 $appid        = $authInfo['authorization_info']['authorizer_appid'];
                 $accessToken  = $authInfo['authorization_info']['authorizer_access_token'];
@@ -177,7 +188,7 @@ class Main
                 $this->setComponentRefreshToken($refreshToken, $appid, 602000);
             });
         } else {
-            $url = 'https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=' . $this->getComponentAppid() . '&pre_auth_code=' . $this->getComponentPreAuthCode() . '&redirect_uri=' . $redirect_uri;
+            $url = 'https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=' . $this->getComponentAppid() . '&pre_auth_code=' . $this->getComponentPreAuthCode() . '&redirect_uri=' . $redirectUri;
             Z::redirect($url);
 
             return false;
@@ -243,11 +254,13 @@ class Main
     public function request($url, $data = null, $type = 'get', $dataType = 'json', $responseType = 'json', $atUpload = false)
     {
         if ('json' === $dataType && is_array($data)) {
+            /** @noinspection PhpComposerExtensionStubsInspection */
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
         $result = ('get' == $type) ? $this->getHttp()->get($url, $data) : $this->getHttp()->post($url, $data, null, 0, $atUpload);
         $this->log('接口请求', $url, $data, $result);
         if ('json' === $responseType) {
+            /** @noinspection PhpComposerExtensionStubsInspection */
             $result  = @json_decode($result, true);
             $errcode = Z::arrayGet($result, 'errcode', '');
             if (!$result || !empty($errcode)) {
