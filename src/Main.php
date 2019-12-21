@@ -1371,10 +1371,10 @@ class Main
      */
     public function push($_ = null)
     {
+        $result = 'success';
         if (!$_ || !$this->isReply()) {
             $this->log('直接返回:success');
             @ob_clean();
-            $result = 'success';
         } else {
             $data = func_get_args();
             if (count($data) > 1) {
@@ -1382,13 +1382,17 @@ class Main
             } else {
                 $type = 'text';
             }
-            [$getRev] = $this->getRev();
-            $data   = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
-            $result = $this->getUtil()->getXml($type, $data);
-            if (true === $this->_encrypt) {
-                $this->getCrypt()->encryptMsg($result, $this->_timestamp, $this->_nonce, $result);
+            if (!!$data && !!Z::arrayGet($data, 0)) {
+                list($getRev) = $this->getRev();
+                $data   = array_merge([$getRev['FromUserName'], $getRev['ToUserName']], $data);
+                $result = $this->getUtil()->getXml($type, $data);
+                if (true === $this->_encrypt) {
+                    $this->getCrypt()->encryptMsg($result, $this->_timestamp, $this->_nonce, $result);
+                }
+                $this->log('最终返回微信', $result);
+            } else {
+                $this->log('没有给微信返回任何东西');
             }
-            $this->log('最终返回微信', $result);
         }
         Z::end($result);
     }
