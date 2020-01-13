@@ -2,6 +2,7 @@
 
 namespace Zls\WeChat;
 
+use Cassandra\Function_;
 use Z;
 
 /**
@@ -56,11 +57,17 @@ class Main
     private $reAccessToken;
     private $reply = true;
     private $triggerResetToken;
+    private $componentRefreshTokenFn;
 
     public function __construct()
     {
         if (Z::config()->find('wechat')) {
             $this->init(Z::config('wechat'));
+        }
+        if (!self::$errCode) {
+            /** @var Util $util */
+            $util          = $this->getUtil();
+            self::$errCode = $this->getUtil()->errCode;
         }
     }
 
@@ -86,9 +93,6 @@ class Main
             $this->triggerResetToken = 0;
         }
         $this->setUniqueKey();
-        /** @var Util $util */
-        $util          = $this->getUtil();
-        self::$errCode = $util->errCode;
 
         return $this;
     }
@@ -577,8 +581,10 @@ class Main
         if (!$appid) {
             $appid = $this->getAppid();
         }
-        if (!$authorizerRefreshToken) {
-            $authorizerRefreshToken = $this->getComponentRefreshToken($appid);
+        if (!$authorizerRefreshToken && !($authorizerRefreshToken = $this->getComponentRefreshToken($appid))) {
+            $this->errorLog('ComponentRefreshToken不存在');
+
+            return false;
         }
         $data = [
             'component_appid'          => $this->getComponentAppid(),
@@ -586,10 +592,10 @@ class Main
             'authorizer_refresh_token' => $authorizerRefreshToken,
         ];
 
-        return $authorizerRefreshToken ? Z::tap($this->post(
+        return Z::tap($this->post(
             self::APIURL . '/cgi-bin/component/api_authorizer_token?component_access_token=' . $this->getComponentAccessToken(),
             $data
-        ), function ($resule) use ($appid, $data) {
+        ), function (&$resule) use ($appid, $data) {
             if ($resule) {
                 $this->getCallbackRefreshComponent($appid, $resule);
                 $expiresIn = $resule['expires_in'] - 1800;
@@ -598,8 +604,9 @@ class Main
                 $this->setComponentRefreshToken($resule['authorizer_refresh_token'], $appid, 602000);
             } else {
                 $this->errorLog('刷新AuthorizerAccessToken失败', $data, $this->getComponentAccessToken(), $this->getError());
+                $resule = false;
             }
-        }) : false;
+        });
     }
 
     /**
@@ -614,8 +621,26 @@ class Main
         if (!$appid) {
             $appid = $this->getAppid();
         }
+        $token = Z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
+        if (!$token) {
+            $token = $this->getComponentRefreshTokenFn($appid);
+        }
 
-        return Z::cache()->get($this->getUniqueKey('_ComponentRefreshToken_' . $appid));
+        return $token;
+    }
+
+    public function getComponentRefreshTokenFn($appid)
+    {
+        if (is_callable($this->componentRefreshTokenFn)) {
+            return call_user_func($this->componentRefreshTokenFn, $appid);
+        }
+
+        return '';
+    }
+
+    public function setComponentRefreshTokenFn(callable $fn)
+    {
+        $this->componentRefreshTokenFn = $fn;
     }
 
     /**
